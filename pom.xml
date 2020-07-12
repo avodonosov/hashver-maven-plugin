@@ -18,6 +18,14 @@
 
   <url>https://github.com/avodonosov/hashver-maven-plugin</url>
 
+  <developers>
+    <developer>
+      <name>Anton Vodonosov</name>
+      <url>https://github.com/avodonosov</url>
+      <id>avodonosov</id>
+    </developer>
+  </developers>
+
   <issueManagement>
     <url>https://github.com/avodonosov/hashver-maven-plugin/issues</url>
     <system>GitHub Issues</system>
