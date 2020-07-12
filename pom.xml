@@ -306,4 +306,27 @@
       </build>
     </profile>
   </profiles>
+  <!--
+    How to release:
+
+            mvn clean
+            mvn -Prelease,ossrh release:perform
+            mvn -Prelease,ossrh release:prepare
+
+            git push–tags
+            git push origin master
+
+        If something goes wrong:
+
+            git reset –hard HEAD~1 (You may have to do it a second time,
+                                    depending upon when the error occurred.)
+            git tag -d tagName
+            git push origin :refs/tags/tagName
+
+        https://dzone.com/articles/publish-your-artifacts-to-maven-central
+
+    How to deploy a snapshot:
+
+          mvn -Prelease,ossrh clean deploy
+  -->
 </project>
