@@ -316,6 +316,9 @@
             git push–tags
             git push origin master
 
+        I use PGP key C49AF0DB403D65030CF27C61041434A8F48149F3
+        which was published to keys.openpgp.org.
+
         If something goes wrong:
 
             git reset –hard HEAD~1 (You may have to do it a second time,
