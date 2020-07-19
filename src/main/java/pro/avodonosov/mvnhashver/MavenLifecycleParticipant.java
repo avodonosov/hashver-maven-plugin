@@ -33,6 +33,12 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 // TODO:
+//   - in the afterProjectsRead compute hashversions again and make sure
+//     corresponding property expressions have the same values.
+//     (duplicates user's wait time for hashver computations, but
+//     prevents mistakes).
+//     Option to disable that - clean CI builds won't usually have stale
+//     target/ directory, no need to waste their time.
 //   - help
 //   - by default don't skip modules if the user has specified an explicit
 //     list of projects (-pl)? (gitflow-incremental-builder adopted
