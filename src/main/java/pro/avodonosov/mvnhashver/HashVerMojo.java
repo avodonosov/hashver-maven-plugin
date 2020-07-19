@@ -148,24 +148,6 @@ public class HashVerMojo extends AbstractMojo {
         }
     }
 
-    private void storeMavenConfig(Map<String, String> hashVers,
-                                  String file)
-            throws IOException
-    {
-        ArrayList<String> keys = new ArrayList<>(hashVers.keySet());
-        keys.sort(String::compareTo);
-        try (BufferedWriter out = openWriter(file)) {
-            for (String key : sortedKeys(hashVers)) {
-                out.write("-D");
-                out.write(key);
-                out.write("=");
-                out.write(hashVers.get(key));
-                out.newLine();
-            }
-        }
-        logInfo("Saved hasVers to " + file);
-    }
-    
     private static BufferedWriter openWriter(String file) throws IOException {
         ensureParentDirExists(file);
         return new BufferedWriter(
@@ -173,6 +155,8 @@ public class HashVerMojo extends AbstractMojo {
                                         StandardCharsets.UTF_8));
     }
 
+    // When searching for a way to pass hashversions to system properties.
+    // This was and idea of a wrapper scrip for `mvn`.
     private void storeMvnEx(Map<String, String> hashVers, String file)
             throws IOException
     {
@@ -187,6 +171,28 @@ public class HashVerMojo extends AbstractMojo {
                 out.write(hashVers.get(key));
             }
             out.write(" \"$@\"");
+        }
+        logInfo("Saved hasVers to " + file);
+    }
+
+    // When searching for a way to pass hashversions to system properties.
+    // Experimenting with .mvn/maven.config. In addition it was planned
+    // to use .mvn/maven.config.head where people who already have
+    // something in their maven.config can move that content.
+    private void storeMavenConfig(Map<String, String> hashVers,
+                                  String file)
+            throws IOException
+    {
+        ArrayList<String> keys = new ArrayList<>(hashVers.keySet());
+        keys.sort(String::compareTo);
+        try (BufferedWriter out = openWriter(file)) {
+            for (String key : sortedKeys(hashVers)) {
+                out.write("-D");
+                out.write(key);
+                out.write("=");
+                out.write(hashVers.get(key));
+                out.newLine();
+            }
         }
         logInfo("Saved hasVers to " + file);
     }
