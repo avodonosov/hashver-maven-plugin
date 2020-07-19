@@ -56,7 +56,12 @@ public class HashVerMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "false", property = "includeGroupId")
     boolean includeGroupId;
-    
+
+    // TODO: Support property expressions in the extraHashData?
+    // TODO: Inject some values into the extraHashData automatically?
+    @Parameter(property = "extraHashData")
+    String extraHashData;
+
     /**
      * The dependency tree builder to use.
      */
@@ -68,17 +73,12 @@ public class HashVerMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        // TODO: Include build options into the hash,
-        //       explicitly specified and maybe some automatically.
-        //       Explicit specification can probably include not only
-        //       values, but also property references.
-        
         Map<String, String> ownHashByArtifact = new HashMap<>();
         for (MavenProject prj : mavenSession.getProjects()) {
             try {
                 ownHashByArtifact.put(
                         ArtifactUtils.key(prj.getArtifact()),
-                        ownHash(prj));
+                        ownHash(prj, extraHashData));
             } catch (IOException e) {
                 throw new MojoExecutionException(
                         "Error calculating module own hash: " + prj.getName(),
@@ -92,7 +92,9 @@ public class HashVerMojo extends AbstractMojo {
                 hashVers.put(
                         hashVerKey(prj),
                         prjHash(mavenSession, prj,
-                                dependencyGraphBuilder, ownHashByArtifact));
+                                dependencyGraphBuilder,
+                                ownHashByArtifact,
+                                extraHashData));
             } catch (DependencyGraphBuilderException e) {
                 throw new MojoExecutionException(
                         "prjVersion() failed for " + prj.getName(),
@@ -223,12 +225,14 @@ public class HashVerMojo extends AbstractMojo {
         logInfo("Saved hasVers to " + file);
     }
 
-    private String ownHash(MavenProject module)
+    private String ownHash(MavenProject module,
+                           // nullable
+                           String extraHashData)
             throws IOException
     {
         File basedir = module.getBasedir();
 
-        MessageDigest digest = newDigest();
+        MessageDigest digest = newDigest(extraHashData);
         fileHash(new File(basedir, "pom.xml"), digest);
         File srcDir = new File(basedir, "src");
         if (srcDir.exists()) {
@@ -243,10 +247,15 @@ public class HashVerMojo extends AbstractMojo {
             throws IOException
     {
         logInfo("hashing directory: " + dir.getPath());
-        // TODO: only digest names relative to module root,
+        // TODO: digest file names relative to module root,
         //       to make the hash independent on work directory / machine
-        // TODO: make the hash independent of file.separator
-        // TODO: make the directory children sort order independent of the OS
+        // TODO: os independence: make the hash independent of file.separator
+        // TODO: os independence: sort the directory children with case
+        //       sensitivity
+        //       (should be reliable on Windows too - even if Windows doesn't
+        //       distinguish char case in file names, it can't randomize
+        //       character case when returning the names - it will always
+        //       return it as user it, I think).
         digest.update(dir.getName().getBytes(StandardCharsets.UTF_8));
 
         File[] children = dir.listFiles();
@@ -288,7 +297,9 @@ public class HashVerMojo extends AbstractMojo {
     static String prjHash(MavenSession session,
                           MavenProject prj,
                           DependencyGraphBuilder dependencyGraphBuilder,
-                          Map<String, String> ownHashByArtifact)
+                          Map<String, String> ownHashByArtifact,
+                          // nullable
+                          String extraHashData)
             throws DependencyGraphBuilderException
     {
         ProjectBuildingRequest buildingRequest =
@@ -308,7 +319,9 @@ public class HashVerMojo extends AbstractMojo {
             throw new RuntimeException(
                     "Can find own hash for module " + prj.getName());
         }
-        return ownHash + "." + dependencyTreeHash(rootNode, ownHashByArtifact);
+        return ownHash + "." + dependencyTreeHash(rootNode,
+                                                  ownHashByArtifact,
+                                                  extraHashData);
     }
 
     private static final Base64.Encoder BASE_64
@@ -437,7 +450,9 @@ public class HashVerMojo extends AbstractMojo {
     }
 
     private static String dependencyTreeHash(DependencyNode theRootNode,
-                                             Map<String, String> ownHashByArtifact)
+                                             Map<String, String> ownHashByArtifact,
+                                             // nullable
+                                             String extraHashData)
     {
         StringWriter writer = new StringWriter();
 
@@ -448,7 +463,7 @@ public class HashVerMojo extends AbstractMojo {
 
         String tree = writer.toString();
 
-        MessageDigest digest = newDigest();
+        MessageDigest digest = newDigest(extraHashData);
         digest.update(tree.getBytes(StandardCharsets.UTF_8));
         return str(digest);
     }
@@ -459,9 +474,13 @@ public class HashVerMojo extends AbstractMojo {
                 .replaceAll("/", "_");
     }
 
-    private static MessageDigest newDigest() {
+    private static MessageDigest newDigest(String extraHashData) {
         try {
-            return MessageDigest.getInstance(DIGEST_ALGO);
+            MessageDigest digest = MessageDigest.getInstance(DIGEST_ALGO);
+            if (extraHashData != null) {
+                digest.update(extraHashData.getBytes(StandardCharsets.UTF_8));
+            }
+            return digest;
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(
                     "Unexpected: " + DIGEST_ALGO + " is not supported by Java",

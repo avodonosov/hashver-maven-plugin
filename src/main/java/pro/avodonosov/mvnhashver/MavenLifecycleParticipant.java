@@ -37,7 +37,10 @@ import java.util.stream.Collectors;
 //     corresponding property expressions have the same values.
 //     (duplicates user's wait time for hashver computations, but
 //     prevents mistakes).
-//     Option to disable that - clean CI builds won't usually have stale
+//     How to know what extraHashData was used during the mojo call?
+//     Store it in the generate target/hashversions.properties
+//     with name hashverMojo.extraHashData.
+//     An option to disable that - clean CI builds won't usually have stale
 //     target/ directory, no need to waste their time.
 //   - help
 //   - by default don't skip modules if the user has specified an explicit
