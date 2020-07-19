@@ -89,12 +89,12 @@ public class HashVerMojo extends AbstractMojo {
         Map<String, String> hashVers = new HashMap<>();
         for (MavenProject prj : mavenSession.getProjects()) {
             try {
-                hashVers.put(
-                        hashVerKey(prj),
-                        prjHash(mavenSession, prj,
-                                dependencyGraphBuilder,
-                                ownHashByArtifact,
-                                extraHashData));
+                hashVers.put(hashVerKey(prj),
+                             fullHash(prj,
+                                      mavenSession,
+                                      dependencyGraphBuilder,
+                                      ownHashByArtifact,
+                                      extraHashData));
             } catch (DependencyGraphBuilderException e) {
                 throw new MojoExecutionException(
                         "prjVersion() failed for " + prj.getName(),
@@ -294,12 +294,12 @@ public class HashVerMojo extends AbstractMojo {
         }
     }
 
-    static String prjHash(MavenSession session,
-                          MavenProject prj,
-                          DependencyGraphBuilder dependencyGraphBuilder,
-                          Map<String, String> ownHashByArtifact,
-                          // nullable
-                          String extraHashData)
+    static String fullHash(MavenProject prj,
+                           MavenSession session,
+                           DependencyGraphBuilder dependencyGraphBuilder,
+                           Map<String, String> ownHashByArtifact,
+                           // nullable
+                           String extraHashData)
             throws DependencyGraphBuilderException
     {
         ProjectBuildingRequest buildingRequest =
