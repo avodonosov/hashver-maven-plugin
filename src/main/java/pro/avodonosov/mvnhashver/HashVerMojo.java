@@ -130,6 +130,7 @@ public class HashVerMojo extends AbstractMojo {
             throws IOException
     {
         storeHashVerProps(hashVers, "target/hashversions.properties");
+        // TODO: an option to produce JSON version
         //storeMavenConfig(hashVers, ".mvn/maven.config");
         //storeMvnEx(hashVers, "mvnex.sh");
     }
