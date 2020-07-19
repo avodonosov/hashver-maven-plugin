@@ -217,7 +217,7 @@ public class HashVerMojo extends AbstractMojo {
         logInfo("Saved hasVers to " + file);
     }
 
-    private static String ownHash(MavenProject module)
+    private String ownHash(MavenProject module)
             throws IOException
     {
         File basedir = module.getBasedir();
@@ -233,10 +233,10 @@ public class HashVerMojo extends AbstractMojo {
         return str(digest);
     }
 
-    private static void directoryHash(File dir, MessageDigest digest)
+    private void directoryHash(File dir, MessageDigest digest)
             throws IOException
     {
-        System.out.println("directoryHash: " + dir.getPath());
+        logInfo("hashing directory: " + dir.getPath());
         // TODO: only digest names relative to module root,
         //       to make the hash independent on work directory / machine
         // TODO: make the hash independent of file.separator
@@ -268,6 +268,10 @@ public class HashVerMojo extends AbstractMojo {
             byte[] buf = new byte[10240];
             int len;
             while ((len = in.read(buf)) != -1) {
+                // Checking hashing CPU cost - run the moje one time normally
+                // and one time with this property set. The time difference
+                // is the CPU cost. In my experiment with maven-wagon
+                // there were no noticeable difference.
                 if (System.getProperty("hashverDigestSkip") == null) {
                     digest.update(buf, 0, len);
                 }
