@@ -38,9 +38,9 @@ you can observe how hashversions are changed accordingly.
    .mvn/extensions.xml. This extension reads the version.properties
    and defines all those properties as system properties.
    Also, it will do the same with target/hashversions.properties, if present.
-   Note .mvn/extensions.xml is only supported since maven 3.3.1,
+   Note, this requires maven 3.3.1 (released in 2015),
    see [below](#maven-older-than-331) for older maven.
-1. Include flatten-maven-plugin so that the final poms published with your
+1. Include flatten-maven-plugin so that the final pom's published with your
    artifacts have the version property expressions resolved.
 
 See how all this done for maven-wagon project as an example:
@@ -128,9 +128,10 @@ on the Maven User List.
 https://lists.apache.org/thread.html/r0a4d687d9a6c315d0f90db59d7e6e7da5d71c18e94d6439c7a548dc2%40%3Cusers.maven.apache.org%3E
 
 # Maven older than 3.3.1
-Hopefully, you can upgrade your maven (3.3.1. was released in 2015).
 
-Otherwise, place the hashver maven plugin jar file to ${maven.home}/lib/ext.
+The .mvn/extensions.xml is only supported since maven 3.3.1.
+
+For older maven place the hashver maven plugin jar file to ${maven.home}/lib/ext.
 
 Unfortunately, declaring the extension in the pom.xml
 doesn't work in our case, because our extension reads the property files
