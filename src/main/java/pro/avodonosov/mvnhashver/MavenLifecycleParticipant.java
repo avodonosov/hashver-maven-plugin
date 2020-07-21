@@ -214,7 +214,7 @@ public class MavenLifecycleParticipant
                     + "' for " + prj.getArtifact());
             return result.isResolved();
         } catch (ArtifactResolutionException e) {
-            logInfo("Failed to resolve artifact " + req, e);
+            logInfo("Failed to resolve artifact " + req);
             return false;
         }
     }
