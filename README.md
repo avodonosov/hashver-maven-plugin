@@ -25,8 +25,10 @@ you can observe how hashversions are changed accordingly.
 
 ### Preparation steps.
 
-1. Give every module a version using property ARTIFACT-ID.version:
-   `<version>${mymodule.version}</version>`
+1. Give every module an explicit version using property ARTIFACT-ID.version:
+   `<version>${mymodule.version}</version>`. Use this property
+   expression everywhere you refer the module version (in dependency
+   specifications for other modules, etc).
 1. Create file versions.properties in the root directory of the project,
    which specifies normal (non hash) values for all the module version
    properties.
@@ -41,8 +43,8 @@ you can observe how hashversions are changed accordingly.
 1. Include flatten-maven-plugin so that the final poms published with your
    artifacts have the version property expressions resolved.
 
-See how all this is done for the maven-wagon project:
-https://github.com/avodonosov/maven-wagon/commit/6ae198cd10cc26f09fe60b36b0ce1da24e692138
+See how all this done for maven-wagon project as an example:
+https://github.com/avodonosov/maven-wagon/commit/55e6743b2f908106791176be237398ba2c47d0ae
 
 If we remove the target/hashversions.properties and run the build, it will
 work as before, using the old versions.
