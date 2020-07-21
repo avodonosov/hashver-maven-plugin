@@ -66,11 +66,11 @@ public class MavenLifecycleParticipant
     public void afterSessionStart(MavenSession session) throws MavenExecutionException {
         super.afterSessionStart(session);
         String baseDir = session.getExecutionRootDirectory();
-        propFileToSysIfExists(baseDir + "/versions.properties");
-        propFileToSysIfExists(baseDir + "/target/hashversions.properties");
+        propFileToSysIfExists(session, baseDir + "/versions.properties");
+        propFileToSysIfExists(session, baseDir + "/target/hashversions.properties");
     }
 
-    private void propFileToSysIfExists(String file)
+    private void propFileToSysIfExists(MavenSession session, String file)
             throws MavenExecutionException
     {
         File f = new File(file);
@@ -85,11 +85,17 @@ public class MavenLifecycleParticipant
                         "Error loading " + file, e);
             }
             logInfo("Setting system properties from " + file);
+            // We need to modify the property collection already
+            // assembled by maven, simply setting System.setProperty
+            // was not enough - maven failed when property expression
+            // was specified in dependencyManagement/dependency/version.
+            Properties sessionSysProps = session.getSystemProperties();
             for (Object propName : props.keySet()) {
                 logInfo(propName.toString() + "=" + props.get(propName));
-                System.setProperty(
-                        propName.toString(),
-                        props.get(propName).toString());
+                String key = propName.toString();
+                String val = props.get(propName).toString();
+                System.setProperty(key, val);
+                sessionSysProps.put(key, val);
             }
         }
     }
