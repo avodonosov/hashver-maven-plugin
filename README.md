@@ -14,7 +14,7 @@ Maturity: alpha.
 ## Pure Informational
 Run this in the root directory of a multi-module maven project:
 
-        mvn pro.avodonosov:hashver-maven-plugin:1.3-SNAPSHOT:hashver
+        mvn pro.avodonosov:hashver-maven-plugin:1.3:hashver
     
 This produces file target/hashversions.properties with hashversions for 
 all modules in the project. The hashversions are in the form
@@ -47,22 +47,24 @@ See how all this done for maven-wagon project as an example:
 https://github.com/avodonosov/maven-wagon/commit/55e6743b2f908106791176be237398ba2c47d0ae
 
 If we remove the target/hashversions.properties and run the build, it will
-work as before, using the old versions.
+work as before, using the "normal" versions we specified in the
+versions.properties.
 
 Note, maven prints warnings like
 ```text
-    [WARNING] 'version' contains an expression but should be a constant. @ org.apache.maven.wagon:wagon-tcks:${wagon-tcks.version}, /home/anton/my/prj/mvnhashvers/test-projects/maven-wagon/wagon-tcks/pom.xml, line 31, column 12
+    [WARNING] 'version' contains an expression but should be a constant.  ...
 ```
-they can be ignored - the flatten-maven-plugin takes care of the problem motivating this warning.
+they can be ignored - the flatten-maven-plugin takes care of the problem
+motivating this warning.
 
 ### Skip Existing Artifacts
 
-When we want to utilize the hashversions funtionality, first run the mojo
-to produce the target/hashversions.properties, and the use
+When we want to utilize the hashversions functionality, first run the mojo
+to produce the target/hashversions.properties, and then use
 `-DskipExistingArtifacts` in your next maven command.
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.3-SNAPSHOT:hashver
+    mvn pro.avodonosov:hashver-maven-plugin:1.3:hashver
     mvn package -DskipExistingArtifacts
 ```
     
@@ -75,7 +77,7 @@ all sources are located there.
 ## The "hashver" mojo
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.3-SNAPSHOT:hashver \
+    mvn pro.avodonosov:hashver-maven-plugin:1.3:hashver \
           [-DextraHashData=someBuildProperty] \
           [-DincludeGroupId]
 ```
