@@ -318,7 +318,7 @@
             mvn -Prelease,ossrh release:prepare
             mvn -Prelease,ossrh release:perform
 
-            git push–tags
+            git push --tags
             git push origin master
 
         I use PGP key C49AF0DB403D65030CF27C61041434A8F48149F3
