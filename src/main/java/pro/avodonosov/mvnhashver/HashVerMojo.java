@@ -249,14 +249,17 @@ public class HashVerMojo extends AbstractMojo {
     {
         logInfo("hashing directory: " + dir.getPath());
         // TODO: digest file names relative to module root,
-        //       to make the hash independent on work directory / machine
-        // TODO: os independence: make the hash independent of file.separator
-        // TODO: os independence: sort the directory children with case
-        //       sensitivity
-        //       (should be reliable on Windows too - even if Windows doesn't
-        //       distinguish char case in file names, it can't randomize
-        //       character case when returning the names - it will always
-        //       return it as user it, I think).
+        //       to be sure hash changes after dir structure modifications
+        //       like moving a file to the parent directory:
+        //       |
+        //           src/
+        //             dir/
+        //               file
+        //       |
+        //           src/
+        //             dir/
+        //             file
+        //       Make sure those relative path are independent of file.separator
         digest.update(dir.getName().getBytes(StandardCharsets.UTF_8));
 
         File[] children = dir.listFiles();
@@ -264,7 +267,10 @@ public class HashVerMojo extends AbstractMojo {
             throw new IOException(dir.getPath() + " is not a directory");
         }
 
-        Arrays.sort(children);
+        // case sensitive sorting (in contrast to the platform-dependent
+        // File.compareTo), to make the hash OS-independent.
+        Arrays.sort(children, Comparator.comparing(File::getName));
+
         for (File child : children) {
             if (child.isDirectory()) {
                 directoryHash(child, digest);

@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 //     How to know what extraHashData was used during the mojo call?
 //     Store it in the generate target/hashversions.properties
 //     with name hashverMojo.extraHashData.
-//     An option to disable that - clean CI builds won't usually have stale
-//     target/ directory, no need to waste their time.
+//     An option to disable that - clean builds on build server won't usually
+//     have stale target/ directory, no need to waste their time.
 //   - help
 //   - by default don't skip modules if the user has specified an explicit
 //     list of projects (-pl)? (gitflow-incremental-builder adopted
