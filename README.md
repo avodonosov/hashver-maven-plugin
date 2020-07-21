@@ -9,6 +9,8 @@ instability of the SNAPSHOT- versions and without manual version management
 
 Maturity: alpha.
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/pro.avodonosov/hashver-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/pro.avodonosov/hashver-maven-plugin)
+
 # Usage
 
 ## Pure Informational
