@@ -315,8 +315,8 @@
     How to release:
 
             mvn clean
-            mvn -Prelease,ossrh release:perform
             mvn -Prelease,ossrh release:prepare
+            mvn -Prelease,ossrh release:perform
 
             git push–tags
             git push origin master
