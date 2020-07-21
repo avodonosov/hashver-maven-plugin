@@ -3,11 +3,147 @@ Explores idea of immutability applied to module versioning.
 For every module in a maven project generates a version which is a
 hash code of the module sources and its dependency tree.
 
-The goal is to avoid rebuild of modules which are not changed.
+The goal is to avoid rebuild of modules which are not changed. Without the
+instability of the SNAPSHOT- versions and without manual version management
+(like version propagation through the dependency tree).
 
-    mvn pro.avodonosov:hashver-maven-plugin:1.2:hashver
+Maturity: alpha.
+
+# Usage
+
+## Pure Informational
+Run this in the root directory of a multi-module maven project:
+
+        mvn pro.avodonosov:hashver-maven-plugin:1.3-SNAPSHOT:hashver
     
-Produces file hashversions.properties.
+This produces file target/hashversions.properties with hashversions for 
+all modules in the project. The hashversions are in the form
+{module own hash}.{dependency tree hash}. If you change something in the code
+you can observe how hashversions are changed accordingly.
 
+## Avoid Unnecessary Rebuilds
+
+### Preparation steps.
+
+1. Give every module a version using property ARTIFACT-ID.version:
+   `<version>${mymodule.version}</version>`
+1. Create file versions.properties in the root directory of the project,
+   which specifies normal (non hash) values for all the module version
+   properties.
+   (You can copy the target/hashversions.properties we generated earlier and
+   change all hash versions to normal versions)
+1. Add the extension provided by the hashver-maven-plugin to the 
+   .mvn/extensions.xml. This extension reads the version.properties
+   and defines all those properties as system properties.
+   Also, it will do the same with target/hashversions.properties, if present.
+   Note .mvn/extensions.xml is only supported since maven 3.3.1,
+   see [below](#maven-older-than-331) for older maven.
+1. Include flatten-maven-plugin so that the final poms published with your
+   artifacts have the version property expressions resolved.
+
+See how all this is done for the maven-wagon project:
+https://github.com/avodonosov/maven-wagon/commit/6ae198cd10cc26f09fe60b36b0ce1da24e692138
+
+If we remove the target/hashversions.properties and run the build, it will
+work as before, using the old versions.
+
+Note, maven prints warnings like
+```text
+    [WARNING] 'version' contains an expression but should be a constant. @ org.apache.maven.wagon:wagon-tcks:${wagon-tcks.version}, /home/anton/my/prj/mvnhashvers/test-projects/maven-wagon/wagon-tcks/pom.xml, line 31, column 12
+```
+they can be ignored - the flatten-maven-plugin takes care of the problem motivating this warning.
+
+### Skip Existing Artifacts
+
+When we want to utilize the hashversions funtionality, first run the mojo
+to produce the target/hashversions.properties, and the use
+`-DskipExistingArtifacts` in your next maven command.
+
+```shell script
+    mvn pro.avodonosov:hashver-maven-plugin:1.3-SNAPSHOT:hashver
+    mvn package -DskipExistingArtifacts
+```
+    
+# Assumptions
+For every module we only hash the pom.xml and the src/ directory - we assume
+all sources are located there.
+
+# Reference
+
+## The "hashver" mojo
+
+```shell script
+    mvn pro.avodonosov:hashver-maven-plugin:1.3-SNAPSHOT:hashver \
+          [-DextraHashData=someBuildProperty] \
+          [-DincludeGroupId]
+```
+
+- extraHashData - Any value you want to include into the hash calculation.
+  It may reflect some build properties other than sources.
+- includeGroupId - The property names in the target/hashversions.properties
+  will include group ID. For example, org.apache.maven.wagon.wagon-http.version
+  instead of simply wagon-http.version.
+
+## The build extension
+
+The following properties (system properties or project properties in pom.xml)
+are supported:
+
+- skipExistingArtifacts - When specified tries to find an artifact for all
+  project modules, and if the artifact exists - removes the module from
+  maven session, thus skipping its build. 
+- existenceCheckMethod - How the artifact existence check is performed.
+  A comma separated list, with the following values supported:
+  - resolve - The default. Invokes standard maven artifact resolution
+    process. The downside of this method is that it performs artifact download,
+    even not needed for the build (not a dependency of any changed module).
+    The advantage is that the most native integration with maven - it supports
+    all protocols, all repository properties specified in all levels
+    (proxies, passwords, etc). 
+  - local - Only check the local repository.
+  - httpHead - Try performing HTTP HEAD for the artifact URL built against
+    base URL of every enabled repo. Does not support proxies and authentication.
+    
+  Example
+  ```shell script
+      -DexistenceCheckMethod=local,httpHead
+  ```
+
+# Design considerations
+When only dependencies have changed, but the module own sources are not changed,
+strictly speaking the module only needs to be re-tested, complication could
+be skipped (unless a dependency instruments code or affect compilation otherwise).
+But we don't want to hunt this minor speedup and risk correctness, especially
+that Java compiler is very fast, most of the build time is spend on tests.
+The hashversion will be different and module will be rebuilt.
+
+# Discussion
+Email thread with title
+"versioning by hashes to speedup multi-module build (a'la nix package manager)"
+on the Maven User List.
+https://lists.apache.org/thread.html/r0a4d687d9a6c315d0f90db59d7e6e7da5d71c18e94d6439c7a548dc2%40%3Cusers.maven.apache.org%3E
+
+# Maven older than 3.3.1
+Hopefully, you can upgrade your maven (3.3.1. was released in 2015).
+
+Otherwise, place the hashver maven plugin jar file to ${maven.home}/lib/ext.
+
+Unfortunately, declaring the extension in the pom.xml
+doesn't work in our case, because our extension reads the property files
+to system properties in AbstractMavenLifecycleParticipant.afterSessionStart,
+which is not called when the extension is declared in the pom.xml.
+
+https://maven.apache.org/examples/maven-3-lifecycle-extensions.html#use-your-extension-in-your-build-s
+
+# See Also
+- Nix and Guix package managers.
+- [gitflow-incremental-builder](https://github.com/vackosar/gitflow-incremental-builder/issues)
+- Gradle and Basel build caches.
+- Gradle Enterprise
+
+# Issues
 Report security issues at: https://hackerone.com/central-security-project/reports/new 
 Other issues on github.
+
+# License
+GNU AGPL v3.
