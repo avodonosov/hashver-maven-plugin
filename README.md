@@ -27,7 +27,7 @@ you can observe how hashversions are changed accordingly.
 
 ### Preparation steps.
 
-1. Give every module an explicit version using property ARTIFACT-ID.version:
+1. Give every module an explicit version using property [artifact].version:
    `<version>${mymodule.version}</version>`. Use this property
    expression everywhere you refer the module version (in dependency
    specifications for other modules, etc).
@@ -71,8 +71,9 @@ to produce the target/hashversions.properties, and then use
 ```
     
 # Assumptions
-For every module we only hash the pom.xml and the src/ directory - we assume
-all sources are located there.
+We assume all the module sources are located in the src/ directory.
+For every module we only hash the pom.xml, the src/ directory and the optional
+extraHashData parameter.
 
 # Reference
 
