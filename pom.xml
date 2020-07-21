@@ -4,7 +4,7 @@
 
   <groupId>pro.avodonosov</groupId>
   <artifactId>hashver-maven-plugin</artifactId>
-  <version>1.3</version>
+  <version>1.4-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
   
   <name>hashver-maven-plugin Maven Plugin</name>
