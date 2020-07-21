@@ -100,8 +100,8 @@ are supported:
   A comma separated list, with the following values supported:
   - resolve - The default. Invokes standard maven artifact resolution
     process. The downside of this method is that it performs artifact download,
-    even not needed for the build (not a dependency of any changed module).
-    The advantage is that the most native integration with maven - it supports
+    even when not needed for the build (not a dependency of any changed module).
+    The advantage is the most native integration with maven - it supports
     all protocols, all repository properties specified in all levels
     (proxies, passwords, etc). 
   - local - Only check the local repository.
