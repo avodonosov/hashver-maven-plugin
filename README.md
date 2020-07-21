@@ -69,7 +69,16 @@ to produce the target/hashversions.properties, and then use
     mvn pro.avodonosov:hashver-maven-plugin:1.3:hashver
     mvn package -DskipExistingArtifacts
 ```
-    
+
+The mojo cannot be run in the same maven invocation as other goals,
+it has to be run in a separately as shown above, because there is a kind
+of "chicken and egg" problem. The system properties for version
+expressions should be defined very early, right after maven session starts,
+to be interpolated into the project tree and be in effect for the other goals,
+and at this early point maven is unable to produce dependency graph
+we need to compute hashversions. If we compute hashversions after
+the project graph is built, it's too late to apply them.
+
 # Assumptions
 We assume all the module sources are located in the src/ directory.
 For every module we only hash the pom.xml, the src/ directory and the optional
@@ -118,7 +127,7 @@ are supported:
 
 # Design considerations
 When only dependencies have changed, but the module own sources are not changed,
-strictly speaking the module only needs to be re-tested, complication could
+strictly speaking, the module only needs to be re-tested, complication could
 be skipped (unless a dependency instruments code or affect compilation otherwise).
 But we don't want to hunt this minor speedup and risk correctness, especially
 that Java compiler is very fast, most of the build time is spend on tests.
