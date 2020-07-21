@@ -44,7 +44,7 @@ you can observe how hashversions are changed accordingly.
    artifacts have the version property expressions resolved.
 
 See how all this done for maven-wagon project as an example:
-https://github.com/avodonosov/maven-wagon/commit/55e6743b2f908106791176be237398ba2c47d0ae
+https://github.com/avodonosov/maven-wagon/commit/f0f3d1ef20e18afea11fe743e9723e6fc4652d3a
 
 If we remove the target/hashversions.properties and run the build, it will
 work as before, using the "normal" versions we specified in the
