@@ -27,7 +27,7 @@ you can observe how hashversions are changed accordingly.
 
 ### Preparation steps.
 
-1. Give every module an explicit version using property [artifact].version:
+1. Give every module an explicit version using property [artifactId].version:
    `<version>${mymodule.version}</version>`. Use this property
    expression everywhere you refer the module version (in dependency
    specifications for other modules, etc).
