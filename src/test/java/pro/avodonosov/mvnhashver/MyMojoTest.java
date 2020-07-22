@@ -47,6 +47,20 @@ import java.io.File;
 //   This means the dependency tree we use for hashing does not include
 //   the properties specified, only actual hashes of the module sources.
 // - propFileToSysIfExists prints a log in all control branches
+// - Directory structure modifications which preserve traversal order
+//   affect the hash. (In other words, we hash file and directory pathes,
+//   not simple names). In the example below, when the "file" is taken
+//   out of the "dir" hashing by short names would not change the hash,
+//   as the short names and the order of their hashing is not changed.
+//
+//           src/
+//             dir/
+//               file
+//
+//           src/
+//             dir/
+//             file
+//
 @Ignore
 public class MyMojoTest
 {

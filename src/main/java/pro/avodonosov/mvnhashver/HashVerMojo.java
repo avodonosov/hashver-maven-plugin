@@ -253,33 +253,44 @@ public class HashVerMojo extends AbstractMojo {
         File basedir = module.getBasedir();
 
         MessageDigest digest = newDigest(extraHashData);
-        fileHash(new File(basedir, "pom.xml"), digest);
+        fileHash(new File(basedir, "pom.xml"), "", digest);
         File srcDir = new File(basedir, "src");
         if (srcDir.exists()) {
             // TODO: do we need a hash if the src dir doesn't exist
-            // TODO: non-standard layout?
-            directoryHash(srcDir, digest);
+            // TODO: non-standard directory layout?
+            directoryHash(srcDir, "", digest);
         }
         return str(digest);
     }
 
-    private void directoryHash(File dir, MessageDigest digest)
+    // Directory hash calculation includes not only content, but also
+    // paths of all files and sub directories in it.
+    // We use not just names, but paths relative to module root
+    // in order to ensure the hash changes when files or directories
+    // are moved around, without changing their names and the order
+    // of traversal by the hashver mojo. For example:
+    //
+    //           src/
+    //             dir/
+    //               file
+    //
+    //           src/
+    //             dir/
+    //             file
+    //
+    // The paths are built in a platform independent way, using a constant
+    // separator and case sensitive file names,
+    // so that the hash is stable across operating systems.
+    private static final String PATH_SEPARATOR = "/";
+
+    private void directoryHash(File dir,
+                               String parentPath,
+                               MessageDigest digest)
             throws IOException
     {
         logInfo("hashing directory: " + dir.getPath());
-        // TODO: digest file names relative to module root,
-        //       to be sure hash changes after dir structure modifications
-        //       like moving a file to the parent directory:
-        //       |
-        //           src/
-        //             dir/
-        //               file
-        //       |
-        //           src/
-        //             dir/
-        //             file
-        //       Make sure those relative path are independent of file.separator
-        digest.update(dir.getName().getBytes(StandardCharsets.UTF_8));
+        String myPath = parentPath + "/" + dir.getName();
+        digest.update(myPath.getBytes(StandardCharsets.UTF_8));
 
         File[] children = dir.listFiles();
         if (children == null) {
@@ -292,24 +303,27 @@ public class HashVerMojo extends AbstractMojo {
 
         for (File child : children) {
             if (child.isDirectory()) {
-                directoryHash(child, digest);
+                directoryHash(child, myPath, digest);
             } else  {
                 assert child.isFile();
-                fileHash(child, digest);
+                fileHash(child, myPath, digest);
             }
         }
     }
 
-    private static void fileHash(File f, MessageDigest digest)
+    private static void fileHash(File f,
+                                 String parentPath,
+                                 MessageDigest digest)
             throws IOException
     {
-        digest.update(f.getName().getBytes(StandardCharsets.UTF_8));
+        String myPath = parentPath + PATH_SEPARATOR + f.getName();
+        digest.update(myPath.getBytes(StandardCharsets.UTF_8));
         try (InputStream in = new FileInputStream(f)) {
             // TODO: use a single shared buf to avoid constant allocation and gc
             byte[] buf = new byte[10240];
             int len;
             while ((len = in.read(buf)) != -1) {
-                // Checking hashing CPU cost - run the moje one time normally
+                // To check hashing CPU cost run the mojo one time normally
                 // and one time with this property set. The time difference
                 // is the CPU cost. In my experiment with maven-wagon
                 // there were no noticeable difference.
