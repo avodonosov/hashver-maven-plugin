@@ -62,6 +62,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static pro.avodonosov.mvnhashver.Logging.LOG_PREFIX;
+
 // TODO: Investigate the "Downloading " message for reactor modules
 //       of maven-wagon project during the "hashver" mojo execution
 //       (seems happening only for the dependency-managed modules):
@@ -136,7 +138,7 @@ public class HashVerMojo extends AbstractMojo {
     }
 
     private void logInfo(String msg) {
-        getLog().info(msg);
+        getLog().info(LOG_PREFIX + msg);
     }
 
     private String hashVerKey(MavenProject prj) {

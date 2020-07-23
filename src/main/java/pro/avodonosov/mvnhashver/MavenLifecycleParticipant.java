@@ -51,6 +51,8 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import static pro.avodonosov.mvnhashver.Logging.LOG_PREFIX;
+
 // TODO:
 //   - in the afterProjectsRead compute hashversions again and make sure
 //     corresponding property expressions have the same values.
@@ -94,7 +96,7 @@ public class MavenLifecycleParticipant
     {
         File f = new File(file);
         if (!f.exists()) {
-            logger.info("File is absent - loading nothing: " + file);
+            logInfo("File is absent - loading nothing: " + file);
         } else {
             Properties props = new Properties();
             try (InputStream in = new FileInputStream(f)) {
@@ -155,11 +157,11 @@ public class MavenLifecycleParticipant
     }
 
     private void logInfo(String s) {
-        logger.info("[HASHVER] " + s);
+        logger.info(LOG_PREFIX + s);
     }
 
     private void logInfo(String s, Throwable t) {
-        logger.info("[HASHVER] " + s, t);
+        logger.info(LOG_PREFIX + s, t);
     }
 
     private static String getProp(MavenSession session,
