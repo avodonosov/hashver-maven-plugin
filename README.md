@@ -25,8 +25,8 @@ you can observe how hashversions are changed accordingly.
 
 ### Preparation steps.
 
-1. Give every module an explicit version using property [artifactId].version:
-   `<version>${mymodule.version}</version>`. Use this property
+1. Give every module an explicit version using property [artifactId].version,
+   like `<version>${mymodule.version}</version>`. Use this property
    expression everywhere you refer the module version (in dependency
    specifications for other modules, etc).
 1. Create file versions.properties in the root directory of the project,
@@ -35,12 +35,10 @@ you can observe how hashversions are changed accordingly.
    (You can copy the target/hashversions.properties we generated earlier and
    change all hash versions to normal versions)
 1. Add the extension provided by the hashver-maven-plugin to the 
-   .mvn/extensions.xml. Note, this requires maven 3.3.1 (released in 2015),
-   see [below](#maven-older-than-331) for older maven.
-   In usual builds this extension reads the version.properties and defines
-   all those properties as system properties. In "hashversions mode" it will
-   read the target/hashversions.properties instead, and will skip build of
-   modules whose artifacts exist already.
+   .mvn/extensions.xml. In usual builds this extension reads the
+   version.properties and defines all those properties as system properties.
+   In "hashversions mode" it will read the target/hashversions.properties
+   instead, and will skip build of modules whose artifacts exist already.
 1. Include flatten-maven-plugin so that the final pom's published with your
    artifacts have the version property expressions resolved.
 
@@ -71,18 +69,19 @@ to produce the target/hashversions.properties, and then use
 The mojo cannot be run in the same maven invocation as other goals,
 it has to be run separately as shown above, due to a kind
 of "chicken and egg" problem. The system properties for version
-expressions should be defined very early, right after maven session starts,
-to be interpolated into the project tree and be in effect for the other goals,
+expressions, to be interpolated into the project tree and be
+in effect for the other goals, have to be defined very early,
+right after maven session starts,
 and at this early point maven is unable to produce dependency graph
 we need to compute hashversions. If we compute hashversions after
 the project graph is built, it's too late to apply them.
 
-In this build mode we can consider the target/hashversions.properties
+In the hashver build mode we can consider the target/hashversions.properties
 the main build result, because only part of the project artifacts
 are produced on the build environment (the affected ones)
 and the rest are only referred. Your build publishing and running scripts
 should take this into account, for example publish the produced artifacts
-and the hashversions.prperties, and when rolling out this build onto a server
+and the hashversions.prperties, and when rolling out this build to a server
 take the hashversions.properteis and fetch all the artifacts according to it.
 
 # Assumptions
