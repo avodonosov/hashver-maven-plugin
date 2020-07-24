@@ -5,7 +5,7 @@ of the Nix package manager).
 The goal is to avoid rebuild of modules which are not changed. Without the
 instability of the SNAPSHOT- versions and without manual version management
 (like version propagation through the dependency tree). Mostly oriented
-to speedup builds by CI servers.
+to speedup CI server builds.
 
 ![Maven Central](https://img.shields.io/maven-central/v/pro.avodonosov/hashver-maven-plugin)
 
@@ -69,7 +69,7 @@ to produce the target/hashversions.properties, and then use
 ```
 
 The mojo cannot be run in the same maven invocation as other goals,
-it has to be run in a separately as shown above, because there is a kind
+it has to be run separately as shown above, due to a kind
 of "chicken and egg" problem. The system properties for version
 expressions should be defined very early, right after maven session starts,
 to be interpolated into the project tree and be in effect for the other goals,
@@ -77,13 +77,13 @@ and at this early point maven is unable to produce dependency graph
 we need to compute hashversions. If we compute hashversions after
 the project graph is built, it's too late to apply them.
 
-In this mode we can consider the target/hashversions.properties
+In this build mode we can consider the target/hashversions.properties
 the main build result, because only part of the project artifacts
 are produced on the build environment (the affected ones)
 and the rest are only referred. Your build publishing and running scripts
 should take this into account, for example publish the produced artifacts
 and the hashversions.prperties, and when rolling out this build onto a server
-take the hashversions.properteis and fetch all the versions according to it.
+take the hashversions.properteis and fetch all the artifacts according to it.
 
 # Assumptions
 We assume all the module sources are located in the src/ directory.
@@ -110,8 +110,8 @@ extraHashData parameter.
 
 The following properties are supported. Some of them can be passed
 through either system properties (sys) or project properties in pom.xml (prj),
-others only through system properties only, because they are checked
-before pom.xml is read.
+others only through system properties, because they are checked
+before the pom.xml is read.
  
 - hashverMode (sys) - If set, the extension works as if 
   -DskipExistingArtifacts -DsysPropFiles=target/hashversions.properties
