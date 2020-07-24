@@ -196,7 +196,7 @@ public class MavenLifecycleParticipant
 
         ExistenceCheckMethod[] existenceChecks =
                 ExistenceCheckMethod.parse(
-                        Config.existenceCheckMethod(session));
+                        Config.existenceCheckMethods(session));
 
 //        logInfo("Project Repositories:");
 //        for (MavenProject prj : session.getProjects()) {
@@ -367,8 +367,8 @@ public class MavenLifecycleParticipant
     }
 
     static class Config {
-        public static String existenceCheckMethod(MavenSession session) {
-            return ConfigProps.existenceCheckMethod.get(session);
+        public static String existenceCheckMethods(MavenSession session) {
+            return ConfigProps.existenceCheckMethods.get(session);
         }
 
         public static boolean skipExistingArtifacts(MavenSession session) {
@@ -397,7 +397,7 @@ public class MavenLifecycleParticipant
         hashverMode("false"),
         sysPropFiles("versions.properties"),
         skipExistingArtifacts("false"),
-        existenceCheckMethod("resolve");
+        existenceCheckMethods("resolve");
 
         public final String defaultValue;
 
