@@ -2,10 +2,11 @@ For every module in a maven project generates a version which is a
 hash code of the module sources and its dependency tree (in the spirit
 of the Nix package manager).
 
-The goal is to avoid rebuild of modules which are not changed. Without the
-instability of the SNAPSHOT- versions and without manual version management
-(like version propagation through the dependency tree). Mostly oriented
-to speedup CI server builds.
+The goal is to avoid rebuild of modules which are not changed. Without
+splitting into multiple repositories, manual version management
+and the instability of the SNAPSHOT versions.
+ 
+Mostly oriented to speedup CI server builds.
 
 ![Maven Central](https://img.shields.io/maven-central/v/pro.avodonosov/hashver-maven-plugin)
 
@@ -127,7 +128,7 @@ before the pom.xml is read.
 - skipExistingArtifacts (sys, prj) - When specified tries to find an artifact
   for every project module, and if the artifact exists - removes the module from
   maven session, thus skipping its build. 
-- existenceCheckMethod (sys, prj) - How the artifact existence check
+- existenceCheckMethods (sys, prj) - How the artifact existence check
   is performed. A comma separated list, with the following values supported:
   - resolve - The default. Invokes standard maven artifact resolution
     process. The downside of this method is that it performs artifact download,
@@ -141,16 +142,16 @@ before the pom.xml is read.
     
   Example
   ```shell script
-      -DexistenceCheckMethod=local,httpHead
+      -DexistenceCheckMethods=local,httpHead
   ```
 
 # Design considerations
 When only dependencies have changed, but the module own sources are not changed,
 strictly speaking, the module only needs to be re-tested, complication could
-be skipped (unless a dependency instruments code or affect compilation otherwise).
+be skipped (unless a dependency instruments code or affects compilation otherwise).
 But we don't want to hunt this minor speedup and risk correctness, especially
-that Java compiler is very fast, most of the build time is spend on tests.
-The hashversion will be different and module will be rebuilt.
+that Java compiler is very fast, most of the build time is usually spent on
+tests. So we just fully rebuild the module.
 
 # Discussion
 Email thread with title
