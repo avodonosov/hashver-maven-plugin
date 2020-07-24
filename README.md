@@ -1,13 +1,11 @@
-Explores idea of immutability applied to module versioning.
-
 For every module in a maven project generates a version which is a
-hash code of the module sources and its dependency tree.
+hash code of the module sources and its dependency tree (in the spirit
+of the Nix package manager).
 
 The goal is to avoid rebuild of modules which are not changed. Without the
 instability of the SNAPSHOT- versions and without manual version management
-(like version propagation through the dependency tree).
-
-Maturity: alpha.
+(like version propagation through the dependency tree). Mostly oriented
+to speedup builds by CI servers.
 
 ![Maven Central](https://img.shields.io/maven-central/v/pro.avodonosov/hashver-maven-plugin)
 
@@ -16,7 +14,7 @@ Maturity: alpha.
 ## Pure Informational
 Run this in the root directory of a multi-module maven project:
 
-        mvn pro.avodonosov:hashver-maven-plugin:1.3:hashver
+        mvn pro.avodonosov:hashver-maven-plugin:1.4:hashver
     
 This produces file target/hashversions.properties with hashversions for 
 all modules in the project. The hashversions are in the form
@@ -37,20 +35,20 @@ you can observe how hashversions are changed accordingly.
    (You can copy the target/hashversions.properties we generated earlier and
    change all hash versions to normal versions)
 1. Add the extension provided by the hashver-maven-plugin to the 
-   .mvn/extensions.xml. This extension reads the version.properties
-   and defines all those properties as system properties.
-   Also, it will do the same with target/hashversions.properties, if present.
-   Note, this requires maven 3.3.1 (released in 2015),
+   .mvn/extensions.xml. Note, this requires maven 3.3.1 (released in 2015),
    see [below](#maven-older-than-331) for older maven.
+   In usual builds this extension reads the version.properties and defines
+   all those properties as system properties. In "hashversions mode" it will
+   read the target/hashversions.properties instead, and will skip build of
+   modules whose artifacts exist already.
 1. Include flatten-maven-plugin so that the final pom's published with your
    artifacts have the version property expressions resolved.
 
 See how all this done for maven-wagon project as an example:
-https://github.com/avodonosov/maven-wagon/commit/f0f3d1ef20e18afea11fe743e9723e6fc4652d3a
+https://github.com/avodonosov/maven-wagon/commit/13c3ae81fbb49099ae9f16cf765505e8c851d1a7
 
-If we remove the target/hashversions.properties and run the build, it will
-work as before, using the "normal" versions we specified in the
-versions.properties.
+Now the build it will work as before, using the "normal" versions we specified
+in the versions.properties.
 
 Note, maven prints warnings like
 ```text
@@ -63,11 +61,11 @@ motivating this warning.
 
 When we want to utilize the hashversions functionality, first run the mojo
 to produce the target/hashversions.properties, and then use
-`-DskipExistingArtifacts` in your next maven command.
+`-DhashverMode` in your next maven command.
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.3:hashver
-    mvn package -DskipExistingArtifacts
+    mvn pro.avodonosov:hashver-maven-plugin:1.4:hashver
+    mvn package -DhashverMode
 ```
 
 The mojo cannot be run in the same maven invocation as other goals,
@@ -79,6 +77,14 @@ and at this early point maven is unable to produce dependency graph
 we need to compute hashversions. If we compute hashversions after
 the project graph is built, it's too late to apply them.
 
+In this mode we can consider the target/hashversions.properties
+the main build result, because only part of the project artifacts
+are produced on the build environment (the affected ones)
+and the rest are only referred. Your build publishing and running scripts
+should take this into account, for example publish the produced artifacts
+and the hashversions.prperties, and when rolling out this build onto a server
+take the hashversions.properteis and fetch all the versions according to it.
+
 # Assumptions
 We assume all the module sources are located in the src/ directory.
 For every module we only hash the pom.xml, the src/ directory and the optional
@@ -89,7 +95,7 @@ extraHashData parameter.
 ## The "hashver" mojo
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.3:hashver \
+    mvn pro.avodonosov:hashver-maven-plugin:1.4:hashver \
           [-DextraHashData=someBuildProperty] \
           [-DincludeGroupId]
 ```
@@ -102,14 +108,28 @@ extraHashData parameter.
 
 ## The build extension
 
-The following properties (system properties or project properties in pom.xml)
-are supported:
-
-- skipExistingArtifacts - When specified tries to find an artifact for all
-  project modules, and if the artifact exists - removes the module from
+The following properties are supported. Some of them can be passed
+through either system properties (sys) or project properties in pom.xml (prj),
+others only through system properties only, because they are checked
+before pom.xml is read.
+ 
+- hashverMode (sys) - If set, the extension works as if 
+  -DskipExistingArtifacts -DsysPropFiles=target/hashversions.properties
+  were specified. System properties only.
+- sysPropFiles (sys) - A comma separated list of property files to read
+  into system properties. If file name is prefixed with opt: the
+  file is optional, otherwise it's required. Relative file names are 
+  treated realtive to the project root directory.
+  Example: 
+  ```shell script
+  -DsysPropFiles=/a.properties,opt:b.properties,src/c.properties
+  ```
+  Default value: versions.properties  
+- skipExistingArtifacts (sys, prj) - When specified tries to find an artifact
+  for every project module, and if the artifact exists - removes the module from
   maven session, thus skipping its build. 
-- existenceCheckMethod - How the artifact existence check is performed.
-  A comma separated list, with the following values supported:
+- existenceCheckMethod (sys, prj) - How the artifact existence check
+  is performed. A comma separated list, with the following values supported:
   - resolve - The default. Invokes standard maven artifact resolution
     process. The downside of this method is that it performs artifact download,
     even when not needed for the build (not a dependency of any changed module).
