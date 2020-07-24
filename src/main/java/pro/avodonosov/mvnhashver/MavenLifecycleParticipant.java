@@ -86,44 +86,108 @@ public class MavenLifecycleParticipant
     @Override
     public void afterSessionStart(MavenSession session) throws MavenExecutionException {
         super.afterSessionStart(session);
-        String baseDir = session.getExecutionRootDirectory();
-        propFileToSysIfExists(session, baseDir + "/versions.properties");
-        propFileToSysIfExists(session, baseDir + "/target/hashversions.properties");
+        loadSysPropFiles(Config.sysPropFiles(), session);
     }
 
-    private void propFileToSysIfExists(MavenSession session, String file)
-            throws MavenExecutionException
+    private void loadSysPropFiles(String filesSpec, MavenSession session)
+        throws MavenExecutionException
     {
-        File f = new File(file);
-        if (!f.exists()) {
-            logInfo("File is absent - loading nothing: " + file);
-        } else {
-            Properties props = new Properties();
-            try (InputStream in = new FileInputStream(f)) {
-                props.load(in);
-            } catch (IOException e) {
-                throw new MavenExecutionException(
-                        "Error loading " + file, e);
-            }
-            logInfo("Setting system properties from " + file);
-            // We need to modify the property collection already
-            // assembled by maven, simply setting System.setProperty
-            // was not enough - maven failed when property expression
-            // was specified in dependencyManagement/dependency/version.
-            Properties sessionSysProps = session.getSystemProperties();
-            for (Object propName : props.keySet()) {
-                logInfo(propName.toString() + "=" + props.get(propName));
-                String key = propName.toString();
-                String val = props.get(propName).toString();
-                System.setProperty(key, val);
-                sessionSysProps.put(key, val);
+        for (SysPropFile fileSpec : parseSysPropFilesSpec(filesSpec)) {
+            if (fileSpec.required) {
+                propFileToSysRequired(session, fileSpec.file);
+            } else {
+                propFileToSysOptional(session, fileSpec.file);
             }
         }
     }
 
+    static class SysPropFile {
+        boolean required = true;
+        String file;
+    }
+
+    static SysPropFile[] parseSysPropFilesSpec(String filesSpec)
+    {
+        if (null == filesSpec) {
+            return new SysPropFile[0];
+        }
+        String[] parts = filesSpec.split(",");
+        SysPropFile[] result = new SysPropFile[parts.length];
+        int i = 0;
+        for (String spec : parts) {
+            SysPropFile elem = new SysPropFile();
+            if (spec.startsWith("opt:")) {
+                elem.required = false;
+                elem.file = spec.substring("opt:".length());
+            } else {
+                elem.required = true;
+                elem.file = spec;
+            }
+            result[i++] = elem;
+        }
+        return result;
+    }
+
+    private void propFileToSys(MavenSession session, File file)
+            throws MavenExecutionException
+    {
+        Properties props = new Properties();
+        try (InputStream in = new FileInputStream(file)) {
+            props.load(in);
+        } catch (IOException e) {
+            throw new MavenExecutionException(
+                    "Error loading " + file, e);
+        }
+        logInfo("Setting system properties from " + file);
+        // We need to modify the property collection already
+        // assembled by maven, simply setting System.setProperty
+        // was not enough - maven failed when property expression
+        // was specified in dependencyManagement/dependency/version.
+        Properties sessionSysProps = session.getSystemProperties();
+        for (Object propName : props.keySet()) {
+            logInfo(propName.toString() + "=" + props.get(propName));
+            String key = propName.toString();
+            String val = props.get(propName).toString();
+            System.setProperty(key, val);
+            sessionSysProps.put(key, val);
+        }
+    }
+
+    static File resolveFile(String file, MavenSession session) {
+        File f = new File(file);
+        if (f.isAbsolute()) {
+            return f;
+        }
+
+        String baseDir = session.getExecutionRootDirectory();
+        return new File(baseDir + File.separator + file);
+    }
+
+    private void propFileToSysOptional(MavenSession session, String file)
+            throws MavenExecutionException
+    {
+        File f = resolveFile(file, session);
+        if (!f.exists()) {
+            logInfo("File is absent - loading nothing: " + file);
+        } else {
+            propFileToSys(session, f);
+        }
+    }
+
+    private void propFileToSysRequired(MavenSession session, String file)
+            throws MavenExecutionException
+    {
+        File f = resolveFile(file, session);
+        if (!f.exists()) {
+            throw new MavenExecutionException(
+                    "File is absent: " + file, (Throwable)null);
+        }
+        propFileToSys(session, f);
+    }
+
     @Override
     public void afterProjectsRead(MavenSession session) {
-         if (!ConfigProps.skipExistingArtifacts.isTrue(session)) {
+        if (!Config.skipExistingArtifacts(session)) {
             return;
         }
 
@@ -132,7 +196,7 @@ public class MavenLifecycleParticipant
 
         ExistenceCheckMethod[] existenceChecks =
                 ExistenceCheckMethod.parse(
-                        ConfigProps.existenceCheckMethod.get(session));
+                        Config.existenceCheckMethod(session));
 
 //        logInfo("Project Repositories:");
 //        for (MavenProject prj : session.getProjects()) {
@@ -162,18 +226,6 @@ public class MavenLifecycleParticipant
 
     private void logInfo(String s, Throwable t) {
         logger.info(LOG_PREFIX + s, t);
-    }
-
-    private static String getProp(MavenSession session,
-                                  String name,
-                                  String defaultValue)
-    {
-        String val = System.getProperty(name);
-        if (val != null) {
-            return val;
-        }
-        Properties projectProps = session.getTopLevelProject().getProperties();
-        return projectProps.getProperty(name, defaultValue);
     }
 
     interface ExistenceCheck {
@@ -314,7 +366,36 @@ public class MavenLifecycleParticipant
         }
     }
 
+    static class Config {
+        public static String existenceCheckMethod(MavenSession session) {
+            return ConfigProps.existenceCheckMethod.get(session);
+        }
+
+        public static boolean skipExistingArtifacts(MavenSession session) {
+            return isTrue(ConfigProps.hashverMode.getSys())
+                    || isTrue(ConfigProps.skipExistingArtifacts.get(session));
+        }
+
+        public static String sysPropFiles() {
+            return isTrue(ConfigProps.hashverMode.getSys())
+                    ? HashVerMojo.HASHVER_FILE
+                    : ConfigProps.sysPropFiles.getSys();
+        }
+
+        public static boolean isTrue(String propVal) {
+            if (propVal == null) {
+                return false;
+            }
+            if (propVal.isEmpty()) {
+                return true;
+            }
+            return Boolean.parseBoolean(propVal);
+        }
+    }
+
     enum ConfigProps {
+        hashverMode("false"),
+        sysPropFiles("versions.properties"),
         skipExistingArtifacts("false"),
         existenceCheckMethod("resolve");
 
@@ -324,20 +405,29 @@ public class MavenLifecycleParticipant
             this.defaultValue = defaultValue;
         }
 
-        public boolean isTrue(MavenSession session) {
-            String val = get(session);
-            if (val == null) {
-                return false;
-            }
-            if (val.isEmpty()) {
-                return true;
-            }
-            return Boolean.parseBoolean(val);
-        }
-        
         public String get(MavenSession session) {
             return getProp(session, name(), defaultValue);
         }
 
+        /**
+         * For properties that are accessed before session.getTopLevelProject()
+         * is available.
+         */
+        public String getSys() {
+            return System.getProperty(name(), defaultValue);
+        }
+
+        private static String getProp(MavenSession session,
+                                      String name,
+                                      String defaultValue)
+        {
+            String val = System.getProperty(name);
+            if (val != null) {
+                return val;
+            }
+
+            Properties prjProps = session.getTopLevelProject().getProperties();
+            return prjProps.getProperty(name, defaultValue);
+        }
     }
 }

@@ -73,6 +73,8 @@ import static pro.avodonosov.mvnhashver.Logging.LOG_PREFIX;
 @Mojo(name = "hashver", aggregator = true)
 public class HashVerMojo extends AbstractMojo {
 
+    public static final String HASHVER_FILE = "target/hashversions.properties";
+
     public static final String DIGEST_ALGO = "SHA-1";
 
     @Parameter(defaultValue = "false", property = "includeGroupId")
@@ -150,7 +152,7 @@ public class HashVerMojo extends AbstractMojo {
     private void storeHashVers(Map<String, String> hashVers)
             throws IOException
     {
-        storeHashVerProps(hashVers, "target/hashversions.properties");
+        storeHashVerProps(hashVers, HASHVER_FILE);
         // TODO: an option to produce JSON version
         //storeMavenConfig(hashVers, ".mvn/maven.config");
         //storeMvnEx(hashVers, "mvnex.sh");
