@@ -160,7 +160,7 @@ https://lists.apache.org/thread.html/r0a4d687d9a6c315d0f90db59d7e6e7da5d71c18e94
 
 # Maven older than 3.3.1
 
-The .mvn/extensions.xml is only supported since maven 3.3.1.
+The .mvn/extensions.xml is only supported since maven 3.3.1 (released in 2015).
 
 For older maven place the hashver maven plugin jar file to ${maven.home}/lib/ext.
 
