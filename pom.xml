@@ -10,10 +10,12 @@
   <name>hashver-maven-plugin Maven Plugin</name>
   <description>
     Generate versions for project modules as hashcode
-    of their sources and dependency tree. so that when module changes
+    of their sources and dependency tree. so that when module
     version changes automatically.
-    The goal is to speedup mult-module project builds by avoiding
-    build of unchanged modules.
+    The goal is to speedup multi-module project builds by avoiding
+    build of unchanged modules (mostly oriented to CI build servers).
+    Provides a build extension which can skip module build if aftifact
+    of the same version exists already.
   </description>
 
   <url>https://github.com/avodonosov/hashver-maven-plugin</url>
