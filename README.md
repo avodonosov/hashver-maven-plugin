@@ -1,12 +1,13 @@
 For every module in a maven project generates a version which is a
 hash code of the module sources and its dependency tree (in the spirit
-of the Nix package manager).
+of the Nix package manager). A build extension can skip modules
+if artifact for the same version already exists.
 
 The goal is to avoid rebuild of modules which are not changed. Without
 splitting into multiple repositories, manual version management
 and the instability of the SNAPSHOT versions.
  
-Mostly oriented to speedup CI server builds.
+Mostly oriented to speedup CI server builds of multi-module projects.
 
 ![Maven Central](https://img.shields.io/maven-central/v/pro.avodonosov/hashver-maven-plugin)
 
@@ -46,7 +47,7 @@ you can observe how hashversions are changed accordingly.
 See how all this done for maven-wagon project as an example:
 https://github.com/avodonosov/maven-wagon/commit/13c3ae81fbb49099ae9f16cf765505e8c851d1a7
 
-Now the build it will work as before, using the "normal" versions we specified
+Now the build will work as before, using the "normal" versions we specified
 in the versions.properties.
 
 Note, maven prints warnings like
@@ -56,7 +57,7 @@ Note, maven prints warnings like
 they can be ignored - the flatten-maven-plugin takes care of the problem
 motivating this warning.
 
-### Skip Existing Artifacts
+### Skip Unaffected Modules
 
 When we want to utilize the hashversions functionality, first run the mojo
 to produce the target/hashversions.properties, and then use
@@ -80,10 +81,11 @@ the project graph is built, it's too late to apply them.
 In the hashver build mode we can consider the target/hashversions.properties
 the main build result, because only part of the project artifacts
 are produced on the build environment (the affected ones)
-and the rest are only referred. Your build publishing and running scripts
-should take this into account, for example publish the produced artifacts
-and the hashversions.prperties, and when rolling out this build to a server
-take the hashversions.properteis and fetch all the artifacts according to it.
+and the rest are only referred in the hashversions.properties.
+Your build publishing and running scripts should take this into account,
+for example publish the produced artifacts and the hashversions.prperties,
+and when rolling out this build to a server take the hashversions.properteis
+and fetch all the artifacts according to it.
 
 # Assumptions
 We assume all the module sources are located in the src/ directory.
@@ -115,7 +117,7 @@ before the pom.xml is read.
  
 - hashverMode (sys) - If set, the extension works as if 
   -DskipExistingArtifacts -DsysPropFiles=target/hashversions.properties
-  were specified. System properties only.
+  were specified.
 - sysPropFiles (sys) - A comma separated list of property files to read
   into system properties. If file name is prefixed with opt: the
   file is optional, otherwise it's required. Relative file names are 
@@ -124,6 +126,9 @@ before the pom.xml is read.
   ```shell script
   -DsysPropFiles=/a.properties,opt:b.properties,src/c.properties
   ```
+  The files are loaded in the order they are specified, so if the same
+  property is specified in several files, the last file wins.
+  
   Default value: versions.properties  
 - skipExistingArtifacts (sys, prj) - When specified tries to find an artifact
   for every project module, and if the artifact exists - removes the module from

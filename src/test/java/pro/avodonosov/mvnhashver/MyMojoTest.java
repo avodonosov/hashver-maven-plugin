@@ -61,7 +61,8 @@ import java.io.File;
 //           src/
 //             dir/
 //             file
-//
+// - The files specified in the sysPropFiles property are loaded
+//   exactly in that order.
 @Ignore
 public class MyMojoTest
 {
