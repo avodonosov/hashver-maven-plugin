@@ -293,7 +293,7 @@ public class HashVerMojo extends AbstractMojo {
             throws IOException
     {
         logInfo("hashing directory: " + dir.getPath());
-        String myPath = parentPath + "/" + dir.getName();
+        String myPath = parentPath + PATH_SEPARATOR + dir.getName();
         digest.update(myPath.getBytes(StandardCharsets.UTF_8));
 
         File[] children = dir.listFiles();
@@ -446,20 +446,21 @@ public class HashVerMojo extends AbstractMojo {
     }
 
     /**
-     * Similar DependencyNode.toNodeString(), only use hash version
+     * Similar to DependencyNode.toNodeString(), only use hash version
      * instead of the artifact version. (This function is only for
      * artifacts in the reactor).
      * 
      * The goal is to prevent  hashversion to depend on itself - 
      * prevent *.version property expression
-     * value to sneak into the  dependency tree we hash - otherwise new
+     * value to sneak into the dependency tree we hash - otherwise new
      * hashversion will affect the dependency tree and thus lead
      * to different hashversion of the artifact.
      * 
      * Unlike DependencyNode.toNodeString() we don't include
      * various "premanaged" properties - they are not important to
      * the hashversion goal (only the final versions are important), 
-     * and they can also include the *.version property expression.
+     * and the "premanaged" properties they can also include the
+     * *.version property expression.
      */
     private static String hashVerNodeString(DependencyNode node, String ownHash) {
         // assert ownHash != null;
