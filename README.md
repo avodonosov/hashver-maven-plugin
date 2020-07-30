@@ -184,7 +184,7 @@ https://maven.apache.org/examples/maven-3-lifecycle-extensions.html#use-your-ext
   That's another maven extension for skipping unchanged modules. It detects
   changes comparing the current git branch to a reference branch
   (e.g. origin/develop).
-- Gradle and Basel build caches. Those newer build tools support build caches
+- Gradle and Bazel build caches. Those newer build tools support build caches
   out of box. The hashver plugin is less granular than them - those tools
   cache on the level of individual build steps (compile, resource generation,
   packaging, etc), while we only cache full artifacts. On the other hand,
