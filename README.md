@@ -28,14 +28,14 @@ you can observe how hashversions are changed accordingly.
 The functionality described above is already sufficient in some sense:
 with every build generate a hashver file, and when publishing the artifacts
 record in some storage their hashversions. On the next build generate hashvers
-again, consult the storage and list the modules whose new hashversions
-are absent in the storage.
+again, consult the storage and list the modules whose new hashversions are
+absent in the storage.
 
 Then build only those modules, using `mvn -pl <the modules> -am`.
 
 However, for this you will need to bother about the storage for hashversions,
 create supporting scripts. And also, such build will rebuild unchanged
-dependencies of changed modules. For example, if subModuleX is changed
+dependencies of changed modules. For example, if `subModuleX` is changed
 in a project with the following structure:
 
     - moduleA
@@ -44,9 +44,10 @@ in a project with the following structure:
     - moduleB
     - moduleC
 
-`mvn -pl :moduleA,:subModuleX -am` will also rebuild subModuleY.
+the `mvn -pl :moduleA,:subModuleX -am` will also rebuild unchnaged
+`subModuleY` because it is require for `moduleA` build.
 
-Therefore, it is more optiimal to actually use hashversions as artifact
+Therefore, it is more optimal to actually use hashversions as artifact
 versions. That way no separate storage is needed, all information is stored
 in the artifact repository. And unchanged dependencies of changed modules
 are not rebuilt but simply fetched from the repository.
