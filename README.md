@@ -45,7 +45,7 @@ in a project with the following structure:
     - moduleC
 
 the `mvn -pl :moduleA,:subModuleX -am` will also rebuild unchnaged
-`subModuleY` because it is require for `moduleA` build.
+`subModuleY` because it is required for `moduleA` build.
 
 Therefore, it is more optimal to actually use hashversions as artifact
 versions. That way no separate storage is needed, all information is stored
