@@ -56,8 +56,8 @@ are not rebuilt but simply fetched from the repository.
 
 1. Give every module an explicit version using property [artifactId].version,
    like `<version>${mymodule.version}</version>`. Use this property
-   expression everywhere you refer the module version (in dependency
-   specifications for other modules, etc).
+   expression everywhere you refer the module version (as a dependency
+   of other modules, etc).
 1. Create file versions.properties in the root directory of the project,
    which specifies normal (non hash) values for all the module version
    properties.
