@@ -110,7 +110,7 @@ the main build result, because only part of the project artifacts
 are produced on the build environment (the affected ones)
 and the rest are only referred in the hashversions.properties.
 Your build publishing and running scripts should take this into account,
-for example publish the produced artifacts and the hashversions.prperties,
+for example publish the produced artifacts and the hashversions.properties,
 and when rolling out this build to a server take the hashversions.properteis
 and fetch all the artifacts according to it.
 
