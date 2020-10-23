@@ -459,7 +459,7 @@ public class HashVerMojo extends AbstractMojo {
      * Unlike DependencyNode.toNodeString() we don't include
      * various "premanaged" properties - they are not important to
      * the hashversion goal (only the final versions are important), 
-     * and the "premanaged" properties they can also include the
+     * and the "premanaged" properties can also include the
      * *.version property expression.
      */
     private static String hashVerNodeString(DependencyNode node, String ownHash) {
