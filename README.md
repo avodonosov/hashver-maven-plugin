@@ -179,10 +179,10 @@ before the pom.xml is read.
 
 # Design considerations
 When only dependencies have changed, but the module own sources are not changed,
-strictly speaking, the module only needs to be re-tested, complication could
+strictly speaking, the module only needs to be re-tested, compilation could
 be skipped (unless a dependency instruments code or affects compilation otherwise).
-But we don't want to hunt this minor speedup and risk correctness, especially
-that Java compiler is very fast, most of the build time is usually spent on
+But we don't want to risk correctness by hunting this minor speedup, especially
+that Java compiler is very fast and most of the build time is usually spent on
 tests. So we just fully rebuild the module.
 
 # Discussion
