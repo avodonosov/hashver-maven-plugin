@@ -96,6 +96,29 @@ public class HashVerMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        Map<String, String> hashVers = computeHashVers(mavenSession,
+                                                       includeGroupId,
+                                                       extraHashData);
+
+        logInfo("HashVers computed: " + hashVers.size());
+        ArrayList<String> keys = new ArrayList<>(hashVers.keySet());
+        Collections.sort(keys);
+        for (String prjKey : keys) {
+            logInfo(prjKey + "=" + hashVers.get(prjKey));
+        }
+
+        try {
+            storeHashVers(hashVers);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Error saving hashVers", e);
+        }
+    }
+
+    protected Map<String, String> computeHashVers(MavenSession mavenSession,
+                                                  boolean includeGroupId,
+                                                  String extraHashData)
+            throws MojoExecutionException
+    {
         Map<String, String> ownHashByArtifact = new HashMap<>();
         for (MavenProject prj : mavenSession.getProjects()) {
             try {
@@ -112,12 +135,12 @@ public class HashVerMojo extends AbstractMojo {
         Map<String, String> hashVers = new HashMap<>();
         for (MavenProject prj : mavenSession.getProjects()) {
             try {
-                hashVers.put(hashVerKey(prj),
-                             fullHash(prj,
-                                      mavenSession,
-                                      dependencyGraphBuilder,
-                                      ownHashByArtifact,
-                                      extraHashData));
+                hashVers.put(hashVerKey(prj, includeGroupId),
+                        fullHash(prj,
+                                mavenSession,
+                                dependencyGraphBuilder,
+                                ownHashByArtifact,
+                                extraHashData));
             } catch (DependencyGraphBuilderException e) {
                 throw new MojoExecutionException(
                         "prjVersion() failed for " + prj.getName(),
@@ -125,25 +148,14 @@ public class HashVerMojo extends AbstractMojo {
             }
         }
 
-        logInfo("HashVers computed: " + hashVers.size());
-        ArrayList<String> keys = new ArrayList<>(hashVers.keySet());
-        Collections.sort(keys);
-        for (String prjKey : keys) {
-            logInfo(prjKey + "=" + hashVers.get(prjKey));
-        }
-
-        try {
-            storeHashVers(hashVers);
-        } catch (IOException e) {
-            throw new MojoExecutionException("Error saving hashVers", e);
-        }
+        return hashVers;
     }
 
-    private void logInfo(String msg) {
+    protected void logInfo(String msg) {
         getLog().info(LOG_PREFIX + msg);
     }
 
-    private String hashVerKey(MavenProject prj) {
+    protected String hashVerKey(MavenProject prj, boolean includeGroupId) {
         return includeGroupId
                 ? prj.getGroupId() + "." + prj.getArtifactId() + ".version"
                 : prj.getArtifactId() + ".version";
