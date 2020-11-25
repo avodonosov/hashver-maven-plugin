@@ -38,8 +38,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  *    cp -r targer/hashver-db-additions/*  the-db-directory/
  *</pre>
  */
-@Mojo(name = "modules-to-build", aggregator = true)
-public class ModulesToBuildMojo extends HashVerMojo {
+@Mojo(name = "projects-to-build", aggregator = true)
+public class ProjectsToBuildMojo extends HashVerMojo {
 
     @Parameter(property = "dbDir", required = true)
     String dbDirPath;
