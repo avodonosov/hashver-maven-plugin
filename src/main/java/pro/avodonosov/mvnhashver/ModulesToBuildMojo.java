@@ -14,8 +14,32 @@ import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-@Mojo(name = "listProjects", aggregator = true)
-public class ListProjectsMojo extends HashVerMojo {
+/**
+ * <p>Given a database of previously successfully built
+ * hashversioned modules, produces a list of modules
+ * whose current versions are absent in this database
+ * (modules affected by changes since the successful builds).
+ *
+ * <p>The produced module list is saved to target/hashver-projects-to-build
+ * in the format suitable for the -pl (--projects) maven option,
+ * with intention to build only them:
+ *
+ * <pre>
+ *     mvn install -pl "$(cat target/hashver-projects-to-build)" -am
+ *</pre>
+ *
+ * <p>The database of previously successfully build modules is a directory
+ * specified by property dbDir.
+ *
+ * <p>The mojo also produces content to be copied into the db directory
+ * if the build of those modules succeeds:
+ *
+ * <pre>
+ *    cp -r targer/hashver-db-additions/*  the-db-directory/
+ *</pre>
+ */
+@Mojo(name = "modules-to-build", aggregator = true)
+public class ModulesToBuildMojo extends HashVerMojo {
 
     @Parameter(property = "dbDir", required = true)
     String dbDirPath;
@@ -29,8 +53,9 @@ public class ListProjectsMojo extends HashVerMojo {
                     "Directory does not exist: " + dbDir.getAbsolutePath());
         }
 
-        File dbAdditionsDir = new File(new File("target"),
-                                 "hashver-db-additions");
+        File targetDir = new File("target");
+        File dbAdditionsDir = new File(targetDir,
+                                       "hashver-db-additions");
         if (!dbAdditionsDir.exists() && !dbAdditionsDir.mkdirs()) {
             throw new MojoExecutionException(
                     "Error creating " + dbAdditionsDir.getAbsolutePath());
@@ -56,7 +81,15 @@ public class ListProjectsMojo extends HashVerMojo {
             }
         }
 
-        logInfo("projects-to-build: " + String.join(",", projects));
+        String projectsCsv = String.join(",", projects);
+        logInfo("hashver-projects-to-build: " + projectsCsv);
+        File affectedProjectsFile = new File(targetDir, "hashver-projects-to-build");
+        logInfo("saving to " + affectedProjectsFile.getAbsolutePath());
+        try {
+            saveToFile(affectedProjectsFile, projectsCsv);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Error saving 'projects to build' file", e);
+        }
     }
 
     private static final byte[] DB_FILE_CONTENT = "1".getBytes(UTF_8);
@@ -72,8 +105,8 @@ public class ListProjectsMojo extends HashVerMojo {
                     + parent.getAbsolutePath());
         }
 
-        try (FileOutputStream stream = new FileOutputStream(f)) {
-            stream.write(DB_FILE_CONTENT);
+        try {
+            saveToFile(f, DB_FILE_CONTENT);
         } catch (IOException e) {
             throw new MojoFailureException(
                     "Error saving file: " + f.getAbsolutePath());
@@ -85,16 +118,42 @@ public class ListProjectsMojo extends HashVerMojo {
     }
 
     static File prjDbFile(File dbDir, MavenProject prj, String hashVer) {
+        // As usually when many files are stored on file system,
+        // do not store them in one plain directory, otherwise
+        // file system performance may degrade significantly when working
+        // with this directory (depends on file system).
+        // For example, see how .git/objects directory is organized.
+        //
+        // We use the following structure:
+        //
+        //     dbDir/artifactId-O.D/artifactId-hashversion
+        //
+        // where O and D are first digits of the artifact own hash and
+        // dependency tree hash.
+        //
+        // TODO: take includeGroupId into account here?
+
         String artifact = prj.getArtifactId();
         int dotPos = hashVer.indexOf('.');
         if (dotPos < 0) {
             throw new IllegalArgumentException(
                     "hashver is expected to have dot inside: " + hashVer);
         }
-        String verGroup = hashVer.substring(0, 2)
-                + hashVer.substring(dotPos, dotPos + 3);
+        String verGroup = hashVer.substring(0, 1)
+                + hashVer.substring(dotPos, dotPos + 2);
         File groupDir = new File(dbDir, artifact + "-" + verGroup);
         return new File(groupDir, hashVer);
+    }
+
+    static void saveToFile(File f, byte[] value) throws IOException {
+        f.delete();
+        try (FileOutputStream stream = new FileOutputStream(f)) {
+            stream.write(value);
+        }
+    }
+
+    static void saveToFile(File f, String value) throws IOException {
+        saveToFile(f, value.getBytes(UTF_8));
     }
 
     static void cleanDir(File dir) throws IOException {
