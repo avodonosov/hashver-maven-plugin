@@ -68,9 +68,9 @@ public class ProjectsToBuildMojo extends HashVerMojo {
                     "Error cleaning " + dbAdditionsDir, e);
         }
 
-        Map<String, String> hashVers = computeHashVers(mavenSession,
-                                                       includeGroupId,
-                                                       extraHashData);
+        Map<String, String> hashVers = super.executeImpl(mavenSession,
+                                                         includeGroupId,
+                                                         extraHashData);
 
         ArrayList<String> projects = new ArrayList<>();
         for (MavenProject prj : mavenSession.getProjects()) {

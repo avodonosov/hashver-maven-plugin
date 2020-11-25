@@ -99,6 +99,14 @@ public class HashVerMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        executeImpl(mavenSession, includeGroupId, extraHashData);
+    }
+
+    protected Map<String, String> executeImpl(MavenSession mavenSession,
+                                              boolean includeGroupId,
+                                              String extraHashData)
+            throws MojoExecutionException, MojoFailureException
+    {
         Map<String, String> hashVers = computeHashVers(mavenSession,
                                                        includeGroupId,
                                                        extraHashData);
@@ -115,6 +123,8 @@ public class HashVerMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException("Error saving hashVers", e);
         }
+
+        return hashVers;
     }
 
     protected Map<String, String> computeHashVers(MavenSession mavenSession,
