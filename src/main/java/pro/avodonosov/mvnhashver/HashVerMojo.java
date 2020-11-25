@@ -136,11 +136,11 @@ public class HashVerMojo extends AbstractMojo {
         for (MavenProject prj : mavenSession.getProjects()) {
             try {
                 hashVers.put(hashVerKey(prj, includeGroupId),
-                        fullHash(prj,
-                                mavenSession,
-                                dependencyGraphBuilder,
-                                ownHashByArtifact,
-                                extraHashData));
+                             fullHash(prj,
+                                      mavenSession,
+                                      dependencyGraphBuilder,
+                                      ownHashByArtifact,
+                                      extraHashData));
             } catch (DependencyGraphBuilderException e) {
                 throw new MojoExecutionException(
                         "prjVersion() failed for " + prj.getName(),
