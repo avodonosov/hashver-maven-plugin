@@ -48,7 +48,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -62,6 +61,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverAncestorPomsForRelaxedHashing;
+import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverAncestorPomsIgnoreErrors;
+import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverDigestSkip;
 import static pro.avodonosov.mvnhashver.Logging.LOG_PREFIX;
 
 // TODO: Investigate the "Downloading " message for reactor modules
@@ -141,7 +144,7 @@ public class HashVerMojo extends AbstractMojo {
                                       dependencyGraphBuilder,
                                       ownHashByArtifact,
                                       extraHashData));
-            } catch (DependencyGraphBuilderException e) {
+            } catch (DependencyGraphBuilderException | IOException e) {
                 throw new MojoExecutionException(
                         "prjVersion() failed for " + prj.getName(),
                         e);
@@ -153,6 +156,10 @@ public class HashVerMojo extends AbstractMojo {
 
     protected void logInfo(String msg) {
         getLog().info(LOG_PREFIX + msg);
+    }
+
+    protected void logWarn(String msg) {
+        getLog().warn(LOG_PREFIX + msg);
     }
 
     protected String hashVerKey(MavenProject prj, boolean includeGroupId) {
@@ -189,8 +196,7 @@ public class HashVerMojo extends AbstractMojo {
     private static BufferedWriter openWriter(String file) throws IOException {
         ensureParentDirExists(file);
         return new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(file),
-                                        StandardCharsets.UTF_8));
+                new OutputStreamWriter(new FileOutputStream(file), UTF_8));
     }
 
     // When searching for a way to pass hashversions to system properties.
@@ -306,7 +312,7 @@ public class HashVerMojo extends AbstractMojo {
     {
         logInfo("hashing directory: " + dir.getPath());
         String myPath = parentPath + PATH_SEPARATOR + dir.getName();
-        digest.update(myPath.getBytes(StandardCharsets.UTF_8));
+        digest.update(myPath.getBytes(UTF_8));
 
         File[] children = dir.listFiles();
         if (children == null) {
@@ -333,7 +339,13 @@ public class HashVerMojo extends AbstractMojo {
             throws IOException
     {
         String myPath = parentPath + PATH_SEPARATOR + f.getName();
-        digest.update(myPath.getBytes(StandardCharsets.UTF_8));
+        digest.update(myPath.getBytes(UTF_8));
+        fileContentHash(f, digest);
+    }
+
+    private static void fileContentHash(File f, MessageDigest digest)
+            throws IOException
+    {
         try (InputStream in = new FileInputStream(f)) {
             // TODO: use a single shared buf to avoid constant allocation and gc
             byte[] buf = new byte[10240];
@@ -343,20 +355,32 @@ public class HashVerMojo extends AbstractMojo {
                 // and one time with this property set. The time difference
                 // is the CPU cost. In my experiment with maven-wagon
                 // there were no noticeable difference.
-                if (System.getProperty("hashverDigestSkip") == null) {
+                if (System.getProperty(hashverDigestSkip.name()) == null) {
                     digest.update(buf, 0, len);
                 }
             }
         }
     }
 
-    static String fullHash(MavenProject prj,
-                           MavenSession session,
-                           DependencyGraphBuilder dependencyGraphBuilder,
-                           Map<String, String> ownHashByArtifact,
-                           // nullable
-                           String extraHashData)
-            throws DependencyGraphBuilderException
+    /**
+     * Properties we don't document for public use,
+     * but providing customizations for special cases.
+     */
+    enum ExtraProperties {
+        hashverDigestSkip,
+        hashverAncestorPomsForRelaxedHashing,
+        hashverAncestorPomsIgnoreErrors
+    }
+
+    String fullHash(MavenProject prj,
+                    MavenSession session,
+                    DependencyGraphBuilder dependencyGraphBuilder,
+                    Map<String, String> ownHashByArtifact,
+                    // nullable
+                    String extraHashData)
+            throws DependencyGraphBuilderException,
+                    IOException,
+                    MojoExecutionException
     {
         ProjectBuildingRequest buildingRequest =
                 new DefaultProjectBuildingRequest(
@@ -375,9 +399,12 @@ public class HashVerMojo extends AbstractMojo {
             throw new RuntimeException(
                     "Can find own hash for module " + prj.getName());
         }
-        return ownHash + "." + dependencyTreeHash(rootNode,
-                                                  ownHashByArtifact,
-                                                  extraHashData);
+
+        MessageDigest depTreeDigest = newDigest(extraHashData);
+        ancestorPomsHash(prj, depTreeDigest);
+        dependencyTreeHash(rootNode, ownHashByArtifact, depTreeDigest);
+
+        return ownHash + "." + str(depTreeDigest);
     }
 
     private static final Base64.Encoder BASE_64
@@ -506,10 +533,94 @@ public class HashVerMojo extends AbstractMojo {
         return result.toString();
     }
 
-    private static String dependencyTreeHash(DependencyNode theRootNode,
-                                             Map<String, String> ownHashByArtifact,
-                                             // nullable
-                                             String extraHashData)
+    private String ancestorPomsHash(MavenProject prj,
+                                    MessageDigest digest)
+            throws IOException, MojoExecutionException
+    {
+        // Implementation note. In debugger I observed that parents
+        // located in the same project have prj.getParent().getFile(),
+        // and external parent poms are available via
+        // prj.getParentArtifact().getFile(). But I don't know the design
+        // behind the related Maven APIs, maybe other cases are possible
+        // for access to the parent pom file.
+        // Thus the extensive error reporting below and the special system
+        // properties allowing to not fail in case of parent pom
+        // hashing problems.
+
+        // TODO: prevent repeated hashing of the same pom.xml
+        //      (when it's in the ancestor chains of several projects).
+        //      Not super important, as hashing the same pom files even
+        //      couple hundred times (for projects with hundreds of modules)
+        //      is quick and constitutes usually a tiny fraction of the source
+        //      code files we hash.
+
+        MavenProject parent = prj.getParent();
+        Artifact parentArtifact = prj.getParentArtifact();
+        while (parent != null) {
+            File pomFile = parent.getFile();
+            if (pomFile == null && parentArtifact != null) {
+                pomFile = parentArtifact.getFile();
+            }
+
+            if (pomFile == null) {
+                String msg = "Unexpected situation when hashing ancestor"
+                        + " poms of " + prj + ": both parent.getFile()"
+                        + " and parentArtifact.getFile() are absent. "
+                        + "The parent: " + parent + ".";
+
+                String parentKey =
+                        parent.getGroupId() + ":" + parent.getArtifactId();
+
+                if (null != System.getProperty(hashverAncestorPomsIgnoreErrors.name())
+                        || csvListMember(parentKey,
+                                System.getProperty(hashverAncestorPomsForRelaxedHashing.name())))
+                {
+                    String parentDataToHash = parent.getGroupId()
+                            + ":" + parent.getArtifactId()
+                            + ":" + parent.getVersion();
+                    logWarn(msg + " Using a relaxed hashing -"
+                            + " hash the following instead of the pom file: "
+                            + parentDataToHash);
+                    digest.update(parentDataToHash.getBytes(UTF_8));
+                } else {
+                    throw new MojoExecutionException(msg
+                            + " Please report this situation to "
+                            + "https://github.com/avodonosov/hashver-maven-plugin/issues."
+                            + " Meanwhile you can mute the error by adding "
+                            + parentKey + " to the comma separated list in the "
+                            + hashverAncestorPomsForRelaxedHashing
+                            + " property or just ignore all parent pom hashing"
+                            + "  errors by setting the "
+                            + hashverAncestorPomsIgnoreErrors + " property.");
+                }
+            } else {
+                fileContentHash(pomFile, digest);
+            }
+
+            parentArtifact = parent.getParentArtifact();
+            parent = parent.getParent();
+        }
+
+        return str(digest);
+    }
+
+    static boolean csvListMember(/* non-null */String elem,
+                                 /* nullable */String csvList)
+    {
+        if (csvList == null) {
+            return false;
+        }
+        for (String part : csvList.split(",")) {
+            if (elem.equals(part)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void dependencyTreeHash(DependencyNode theRootNode,
+                                           Map<String, String> ownHashByArtifact,
+                                           MessageDigest digest)
     {
         StringWriter writer = new StringWriter();
 
@@ -520,9 +631,7 @@ public class HashVerMojo extends AbstractMojo {
 
         String tree = writer.toString();
 
-        MessageDigest digest = newDigest(extraHashData);
-        digest.update(tree.getBytes(StandardCharsets.UTF_8));
-        return str(digest);
+        digest.update(tree.getBytes(UTF_8));
     }
 
     private static String str(MessageDigest digest) {
@@ -535,7 +644,7 @@ public class HashVerMojo extends AbstractMojo {
         try {
             MessageDigest digest = MessageDigest.getInstance(DIGEST_ALGO);
             if (extraHashData != null) {
-                digest.update(extraHashData.getBytes(StandardCharsets.UTF_8));
+                digest.update(extraHashData.getBytes(UTF_8));
             }
             return digest;
         } catch (NoSuchAlgorithmException e) {
