@@ -56,12 +56,8 @@ public class ProjectsToBuildMojo extends HashVerMojo {
         }
 
         File targetDir = new File("target");
-        File dbAdditionsDir = new File(targetDir,
-                                       "hashver-db-additions");
-        if (!dbAdditionsDir.exists() && !dbAdditionsDir.mkdirs()) {
-            throw new MojoExecutionException(
-                    "Error creating " + dbAdditionsDir.getAbsolutePath());
-        }
+        File dbAdditionsDir = new File(targetDir,"hashver-db-additions");
+        ensureDirExists(dbAdditionsDir);
 
         try {
             cleanDir(dbAdditionsDir);
@@ -97,21 +93,25 @@ public class ProjectsToBuildMojo extends HashVerMojo {
     private static final byte[] DB_FILE_CONTENT = "1".getBytes(UTF_8);
 
     static void saveDbAddition(File dir, MavenProject prj, String hashVer)
-            throws MojoFailureException
+            throws MojoExecutionException
     {
         File f = prjDbFile(dir, prj, hashVer);
 
         File parent = f.getParentFile();
-        if (!parent.exists() && !parent.mkdirs()) {
-            throw new MojoFailureException("Error creating directory: "
-                    + parent.getAbsolutePath());
-        }
+        ensureDirExists(parent);
 
         try {
             saveToFile(f, DB_FILE_CONTENT);
         } catch (IOException e) {
-            throw new MojoFailureException(
+            throw new MojoExecutionException(
                     "Error saving file: " + f.getAbsolutePath());
+        }
+    }
+
+    static void ensureDirExists(File dir) throws MojoExecutionException {
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new MojoExecutionException(
+                    "Error creating directory: " + dir.getAbsolutePath());
         }
     }
 
