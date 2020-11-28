@@ -378,7 +378,7 @@ public class MavenLifecycleParticipant
 
         public static String sysPropFiles() {
             return isTrue(ConfigProps.hashverMode.getSys())
-                    ? HashVerMojo.HASHVER_FILE
+                    ? HashVerMojo.HASHVER_PROP_FILE
                     : ConfigProps.sysPropFiles.getSys();
         }
 

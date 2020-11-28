@@ -19,6 +19,7 @@
 
 package pro.avodonosov.mvnhashver;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.ArtifactUtils;
 import org.apache.maven.execution.MavenSession;
@@ -67,6 +68,7 @@ import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverAnces
 import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverAncestorPomsIgnoreErrors;
 import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverDigestSkip;
 import static pro.avodonosov.mvnhashver.Logging.LOG_PREFIX;
+import static pro.avodonosov.mvnhashver.Utils.saveToFile;
 
 // TODO: Investigate the "Downloading " message for reactor modules
 //       of maven-wagon project during the "hashver" mojo execution
@@ -77,7 +79,8 @@ import static pro.avodonosov.mvnhashver.Logging.LOG_PREFIX;
 @Mojo(name = "hashver", aggregator = true)
 public class HashVerMojo extends AbstractMojo {
 
-    public static final String HASHVER_FILE = "target/hashversions.properties";
+    public static final String HASHVER_PROP_FILE = "target/hashversions.properties";
+    public static final String HASHVER_JSON_FILE = "target/hashversions.json";
 
     public static final String DIGEST_ALGO = "SHA-1";
 
@@ -182,8 +185,8 @@ public class HashVerMojo extends AbstractMojo {
     private void storeHashVers(Map<String, String> hashVers)
             throws IOException
     {
-        storeHashVerProps(hashVers, HASHVER_FILE);
-        // TODO: an option to produce JSON version
+        storeHashVerProps(hashVers, HASHVER_PROP_FILE);
+        storeHashVerJson(hashVers, HASHVER_JSON_FILE);
         //storeMavenConfig(hashVers, ".mvn/maven.config");
         //storeMvnEx(hashVers, "mvnex.sh");
     }
@@ -275,6 +278,36 @@ public class HashVerMojo extends AbstractMojo {
             props.store(out, null);
         }
 
+        logInfo("Saved hasVers to " + file);
+    }
+
+    static String hashVerJson(Map<String, String> hashVers) {
+        StringBuilder result = new StringBuilder();
+
+        ArrayList<String> keys = new ArrayList<>(hashVers.keySet());
+        keys.sort(Comparator.naturalOrder());
+        String maybeSeparatror = "";
+        result.append("{");
+        for (String key : keys) {
+            result.append(maybeSeparatror)
+                    .append('"')
+                    .append(StringEscapeUtils.escapeJson(key))
+                    .append("\": \"")
+                    .append(StringEscapeUtils.escapeJson(hashVers.get(key)))
+                    .append("\"");
+            maybeSeparatror = ",\n ";
+        }
+        result.append("}\n");
+
+        return result.toString();
+    }
+
+    private void storeHashVerJson(Map<String, String> hashVers,
+                                  String file)
+            throws IOException
+    {
+        ensureParentDirExists(file);
+        saveToFile(new File(file), hashVerJson(hashVers));
         logInfo("Saved hasVers to " + file);
     }
 
