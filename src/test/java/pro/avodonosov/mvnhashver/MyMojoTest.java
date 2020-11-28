@@ -63,6 +63,11 @@ import java.io.File;
 //             file
 // - The files specified in the sysPropFiles property are loaded
 //   exactly in that order.
+// - Ancestor pom changes are reflected in hashversions
+// - Handling of SNAPSHOT dependencies in the dependency tree.
+// - That dependency version ranges, LATEST and RELEASE versions are
+//   hashed as concrete versions (we rely on maven to resolve them to
+//   concrete versions when creating DependencyTreeNodes for them).
 @Ignore
 public class MyMojoTest
 {
