@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashVerSnapshotDependencyMode;
 import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverAncestorPomsForRelaxedHashing;
 import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverAncestorPomsIgnoreErrors;
 import static pro.avodonosov.mvnhashver.HashVerMojo.ExtraProperties.hashverDigestSkip;
@@ -379,7 +380,8 @@ public class HashVerMojo extends AbstractMojo {
     enum ExtraProperties {
         hashverDigestSkip,
         hashverAncestorPomsForRelaxedHashing,
-        hashverAncestorPomsIgnoreErrors
+        hashverAncestorPomsIgnoreErrors,
+        hashVerSnapshotDependencyMode,
     }
 
     String fullHash(MavenProject prj,
@@ -482,6 +484,26 @@ public class HashVerMojo extends AbstractMojo {
                     if (ownHash != null) {
                         return hashVerNodeString(node, ownHash);
                     } else {
+                        if (node.getArtifact().isSnapshot()) {
+
+                            final String ignore = "ignore";
+                            if (!ignore.equals(
+                                    System.getProperty(hashVerSnapshotDependencyMode.name())))
+                            {
+                                String errMsg = "You have a -SNAPSHOT "
+                                    + "dependency in the dependency tree, "
+                                    + "which is not very consistent with "
+                                    + "the idea of immutable hash versions: "
+                                    + node.getArtifact()
+                                    + ". Specify -D"
+                                    + hashVerSnapshotDependencyMode.name()
+                                    + "=" + ignore
+                                    + " if you are sure. See also "
+                                    + "https://github.com/avodonosov/hashver-maven-plugin/issues/7";
+
+                                throw new RuntimeException(errMsg);
+                            }
+                        }
                         return node.toNodeString();
                     }
                 }
