@@ -16,7 +16,7 @@ Mostly oriented to speedup CI server builds of multi-module projects.
 ## Pure Informational
 Run this in the root directory of a multi-module maven project:
 
-        mvn pro.avodonosov:hashver-maven-plugin:1.4:hashver
+        mvn pro.avodonosov:hashver-maven-plugin:1.5:hashver
     
 This produces file target/hashversions.properties with hashversions for 
 all modules in the project. The hashversions are in the form
@@ -72,7 +72,7 @@ are not rebuilt but simply fetched from the repository.
    artifacts have the version property expressions resolved.
 
 See how all this done for maven-wagon project as an example:
-https://github.com/avodonosov/maven-wagon/commit/13c3ae81fbb49099ae9f16cf765505e8c851d1a7
+https://github.com/avodonosov/maven-wagon/commit/6a7647db0759839c3f83b1a575321050169db708
 
 Now the build will work as before, using the "normal" versions we specified
 in the versions.properties.
@@ -91,7 +91,7 @@ to produce the target/hashversions.properties, and then use
 `-DhashverMode` in your next maven command.
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.4:hashver
+    mvn pro.avodonosov:hashver-maven-plugin:1.5:hashver
     mvn package -DhashverMode
 ```
 
@@ -124,7 +124,7 @@ extraHashData parameter.
 ## The "hashver" mojo
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.4:hashver \
+    mvn pro.avodonosov:hashver-maven-plugin:1.5:hashver \
           [-DextraHashData=someBuildProperty] \
           [-DincludeGroupId]
 ```
