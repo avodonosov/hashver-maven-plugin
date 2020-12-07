@@ -602,8 +602,8 @@ public class HashVerMojo extends AbstractMojo {
         return result.toString();
     }
 
-    private String ancestorPomsHash(MavenProject prj,
-                                    MessageDigest digest)
+    private void ancestorPomsHash(MavenProject prj,
+                                  MessageDigest digest)
             throws IOException, MojoExecutionException
     {
         // Implementation note. In debugger I observed that parents
@@ -669,8 +669,6 @@ public class HashVerMojo extends AbstractMojo {
             parentArtifact = parent.getParentArtifact();
             parent = parent.getParent();
         }
-
-        return str(digest);
     }
 
     static boolean csvListMember(/* non-null */String elem,
