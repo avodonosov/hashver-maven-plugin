@@ -1,5 +1,6 @@
 package pro.avodonosov.mvnhashver;
 
+import org.apache.maven.execution.ProjectDependencyGraph;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -10,7 +11,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static pro.avodonosov.mvnhashver.Utils.cleanDir;
@@ -70,24 +77,53 @@ public class ProjectsToBuildMojo extends HashVerMojo {
                                                          includeGroupId,
                                                          extraHashData);
 
-        ArrayList<String> projects = new ArrayList<>();
+        HashSet<MavenProject> affectedProjects = new HashSet<>();
         for (MavenProject prj : mavenSession.getProjects()) {
             String hashVer = hashVers.get(hashVerKey(prj, includeGroupId));
             if (!dbContains(dbDir, prj, hashVer)) {
-                projects.add(":" + prj.getArtifactId());
-                saveDbAddition(dbAdditionsDir, prj, hashVer);
+                affectedProjects.add(prj);
             }
         }
 
-        String projectsCsv = String.join(",", projects);
-        logInfo("hashver-projects-to-build: " + projectsCsv);
+        ProjectDependencyGraph depGraph = mavenSession.getProjectDependencyGraph();
+        Stream<MavenProject> dependencies = affectedProjects.stream()
+                .flatMap(prj -> depGraph.getUpstreamProjects(prj, true)
+                                    .stream());
+
+        HashSet<MavenProject> unaffectedButBuilt =
+                dependencies.filter(p -> !affectedProjects.contains(p))
+                        .collect(Collectors.toCollection(HashSet::new));
+
+        HashSet<MavenProject> notBuilt = mavenSession.getProjects().stream()
+                .filter(p -> !affectedProjects.contains(p)
+                                && !unaffectedButBuilt.contains(p))
+                        .collect(Collectors.toCollection(HashSet::new));
+
+        for (MavenProject prj : affectedProjects) {
+            saveDbAddition(dbAdditionsDir,
+                           prj,
+                           hashVers.get(hashVerKey(prj, includeGroupId)));
+        }
+
+        String toBuild = artifactIds(affectedProjects);
+        logInfo("hashver-projects-to-build: " + toBuild);
         File affectedProjectsFile = new File(targetDir, "hashver-projects-to-build");
         logInfo("saving to " + affectedProjectsFile.getAbsolutePath());
+        logInfo("The projects unaffected but to be built with the 'mvn -a': "
+                + artifactIds(unaffectedButBuilt));
+        logInfo("The projects skipped completely: " + artifactIds(notBuilt));
         try {
-            saveToFile(affectedProjectsFile, projectsCsv);
+            saveToFile(affectedProjectsFile, toBuild);
         } catch (IOException e) {
             throw new MojoExecutionException("Error saving 'projects to build' file", e);
         }
+    }
+
+    private static String artifactIds(Collection<MavenProject> projects) {
+        return projects.stream()
+                .map(p -> ":" + p.getArtifactId())
+                .sorted()
+                .collect(Collectors.joining(","));
     }
 
     private static final byte[] DB_FILE_CONTENT = "1".getBytes(UTF_8);
