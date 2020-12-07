@@ -172,6 +172,10 @@ public class HashVerMojo extends AbstractMojo {
         getLog().info(LOG_PREFIX + msg);
     }
 
+    protected void logDebug(String msg) {
+        getLog().debug(LOG_PREFIX + msg);
+    }
+
     protected void logWarn(String msg) {
         getLog().warn(LOG_PREFIX + msg);
     }
@@ -354,7 +358,7 @@ public class HashVerMojo extends AbstractMojo {
                                MessageDigest digest)
             throws IOException
     {
-        logInfo("hashing directory: " + dir.getPath());
+        logDebug("hashing directory: " + dir.getPath());
         String myPath = parentPath + PATH_SEPARATOR + dir.getName();
         digest.update(myPath.getBytes(UTF_8));
 
