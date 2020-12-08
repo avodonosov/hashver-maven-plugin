@@ -109,7 +109,7 @@ public class ProjectsToBuildMojo extends HashVerMojo {
         logInfo("hashver-projects-to-build: " + toBuild);
         File affectedProjectsFile = new File(targetDir, "hashver-projects-to-build");
         logInfo("saving to " + affectedProjectsFile.getAbsolutePath());
-        logInfo("The projects unaffected but to be built with the 'mvn -a': "
+        logInfo("The projects unaffected but to be built with the `mvn -am`: "
                 + artifactIds(unaffectedButBuilt));
         logInfo("The projects skipped completely: " + artifactIds(notBuilt));
         try {
