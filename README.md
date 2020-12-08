@@ -16,7 +16,7 @@ Mostly oriented to speedup CI server builds of multi-module projects.
 ## Pure Informational
 Run this in the root directory of a multi-module maven project:
 
-        mvn pro.avodonosov:hashver-maven-plugin:1.5:hashver
+        mvn pro.avodonosov:hashver-maven-plugin:1.6:hashver
     
 This produces file target/hashversions.properties with hashversions for 
 all modules in the project. The hashversions are in the form
