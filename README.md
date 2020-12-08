@@ -33,8 +33,11 @@ absent in the storage.
 
 Then build only those modules, using `mvn -pl <the modules> -am`.
 
+This approach does not even require touching the project's pom.xml
+files. See example in the "projects-to-build" mojo description below.
+
 However, for this you will need to bother about the storage for hashversions,
-create supporting scripts. And also, such build will rebuild unchanged
+create supporting scripts. Also, such a build will rebuild unchanged
 dependencies of changed modules. For example, if `subModuleX` is changed
 in a project with the following structure:
 
@@ -54,6 +57,9 @@ are not rebuilt but simply fetched from the repository.
 
 ### Preparation steps.
 
+An example of the below steps done for the maven-wagon project:
+https://github.com/avodonosov/maven-wagon/commit/fec377e145cd39187f392905156e6840c7629b75
+
 1. Give every module an explicit version using property [artifactId].version,
    like `<version>${mymodule.version}</version>`. Use this property
    expression everywhere you refer the module version (as a dependency
@@ -70,9 +76,6 @@ are not rebuilt but simply fetched from the repository.
    instead, and will skip build of modules whose artifacts exist already.
 1. Include flatten-maven-plugin so that the final pom's published with your
    artifacts have the version property expressions resolved.
-
-See how all this done for maven-wagon project as an example:
-https://github.com/avodonosov/maven-wagon/commit/6a7647db0759839c3f83b1a575321050169db708
 
 Now the build will work as before, using the "normal" versions we specified
 in the versions.properties.
@@ -91,7 +94,7 @@ to produce the target/hashversions.properties, and then use
 `-DhashverMode` in your next maven command.
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.5:hashver
+    mvn pro.avodonosov:hashver-maven-plugin:1.6:hashver
     mvn package -DhashverMode
 ```
 
@@ -124,7 +127,7 @@ extraHashData parameter.
 ## The "hashver" mojo
 
 ```shell script
-    mvn pro.avodonosov:hashver-maven-plugin:1.5:hashver \
+    mvn pro.avodonosov:hashver-maven-plugin:1.6:hashver \
           [-DextraHashData=someBuildProperty] \
           [-DincludeGroupId]
 ```
@@ -177,6 +180,36 @@ before the pom.xml is read.
       -DexistenceCheckMethods=local,httpHead
   ```
 
+## The "projects-to-build" mojo
+
+Extends the "hashver" mojo behavior with comparing the computed
+hashversions against a database of previously successfully built
+module hashversions, and producing a list of modules absent in the
+database (modules affected by changes since the successful builds).
+
+The produced module list is saved to target/hashver-projects-to-build
+in the format suitable for the -pl (--projects) maven option,
+with intention to build only them:
+
+```shell script
+    mvn install -pl "$(cat target/hashver-projects-to-build)" -am
+```
+
+The database of previously successfully build modules is a directory
+specified by property dbDir.
+
+The mojo also produces content to be copied into the db directory
+if the build of those modules succeeds:
+
+```shell script
+   cp -r targer/hashver-db-additions/*  the-db-directory/
+```
+Besides the dbDir property the mojo supports all the properties of the
+"hashver" mojo.
+
+Example how this mojo is used in GitHub Actions workflow of the redisson
+project: https://github.com/avodonosov/redisson/commit/1d68c64d7dd370652dc303a76735af9998b01353
+
 # Design considerations
 When only dependencies have changed, but the module own sources are not changed,
 strictly speaking, the module only needs to be re-tested, compilation could
@@ -210,7 +243,14 @@ https://maven.apache.org/examples/maven-3-lifecycle-extensions.html#use-your-ext
 - [gitflow-incremental-builder](https://github.com/vackosar/gitflow-incremental-builder)
   That's another maven extension for skipping unchanged modules. It detects
   changes comparing the current git branch to a reference branch
-  (e.g. origin/develop).
+  (e.g. origin/develop). If all you need is the unit test pass/fail result, and 
+  you follow the gitflow practice, then gitflow-incremental-builder is simple
+  enough. The hashver-maven-plugin allows to not only validate unit tests, but
+  also to deploy the full system even despite we've only built affected
+  modules - the target/hashversions.properties tells us what versions of
+  the rest of the modules to deploy together with the currently
+  built modules. Also, hashver-maven-plugin skips unaffected modules in any
+  git wofkflow, like direct commits to master branch.
 - Gradle and Bazel build caches. Those newer build tools support build caches
   out of box. The hashver plugin is less granular than them - those tools
   cache on the level of individual build steps (compile, resource generation,
