@@ -106,13 +106,17 @@ public class ProjectsToBuildMojo extends HashVerMojo {
         }
 
         String toBuild = artifactIds(affectedProjects);
+        String dependentProjects = artifactIds(unaffectedButBuilt);
         logInfo("hashver-projects-to-build: " + toBuild);
         File affectedProjectsFile = new File(targetDir, "hashver-projects-to-build");
         logInfo("saving to " + affectedProjectsFile.getAbsolutePath());
         logInfo("The projects unaffected but to be built with the 'mvn -a': "
-                + artifactIds(unaffectedButBuilt));
+                + dependentProjects);
+        File dependentProjectsFile = new File(targetDir, "hashver-dependent-projects-to-build");
+        logInfo("saving to " + dependentProjectsFile.getAbsolutePath());
         logInfo("The projects skipped completely: " + artifactIds(notBuilt));
         try {
+            saveToFile(dependentProjectsFile, dependentProjects);
             saveToFile(affectedProjectsFile, toBuild);
         } catch (IOException e) {
             throw new MojoExecutionException("Error saving 'projects to build' file", e);
