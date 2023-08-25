@@ -19,7 +19,7 @@
 
 package pro.avodonosov.mvnhashver;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.ArtifactUtils;
 import org.apache.maven.execution.MavenSession;
