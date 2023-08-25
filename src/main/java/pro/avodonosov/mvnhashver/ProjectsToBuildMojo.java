@@ -112,6 +112,8 @@ public class ProjectsToBuildMojo extends HashVerMojo {
         logInfo("The projects unaffected but to be built with the `mvn -am`: "
                 + artifactIds(unaffectedButBuilt));
         logInfo("The projects skipped completely: " + artifactIds(notBuilt));
+        logInfo("To copy the successful hashversions to the dbDir: cp -r "
+                + dbAdditionsDir + "/* " + dbDir + "/");
         try {
             saveToFile(affectedProjectsFile, toBuild);
         } catch (IOException e) {
